@@ -248,7 +248,7 @@ x00 = x00.*triu(ones(size(x00)));
 F = P*cos(alpha);
 
 % Luo and Tong (2004, 2007) > adhesive thickness inlcuded
-[Shear_a, Peel_a, Loads_ad1, Loads_ad2] = Calc_OverlapStressesAndLoads(x00, F, M_k, Q_kc, EIxx1, AExx1, l_B, E, t, E_a, G_a, t_a);
+[Shear_a, Peel_a, Loads_ad1, Loads_ad2] = Adhesive_Stresses_Adherent_Loads(x00, F, M_k, Q_kc, EIxx1, AExx1, l_B, E, t, E_a, G_a, t_a);
 
 % Goland and Reissner (1944) > adhesive thickness excluded (ta = 0)
 %[Shear_a2, Peel_a2] = Adhesive_Stresses_GR(x00, P, l_B, E, t, Ea, Ga, ta, v);
@@ -258,7 +258,7 @@ F = P*cos(alpha);
 if exist('Al','var') && exist ('GF','var') && exist ('fml','var')
     % Stress and strain cycles in the AL facesheets (adjecent to the
     % adhesive interface)
-    [Sxx, exx] = Calc_StressStrainCycle(Loads_ad1.N, Loads_ad1.M, Loads_ad2.N, Loads_ad2.M, ABD, AExx1, EIxx1);
+    [Sxx, exx] = Stress_Strain_Cycle(Loads_ad1.N, Loads_ad1.M, Loads_ad2.N, Loads_ad2.M, ABD, AExx1, EIxx1);
     
     % R-ratio (Smin/Smax)
     R_nom_ad1 = Sxx.ad1(:,:,1)./Sxx.ad1(:,:,2);
@@ -276,10 +276,10 @@ end
 %% Module 7: Strain Energy Release Rate
 
 % SERR and Mode Ratio components - Specimen with finite length
-[serr, mr] = Calc_StrainEnergyReleaseRate(F, M_k, M_0, E, t, AExx1, EIxx1, 'Fern1und1991');
+[serr, mr] = Strain_Energy_Release_Rate(F, M_k, M_0, E, t, AExx1, EIxx1, 'Fern1und1991');
 
 % SERR and Mode Ratio componentes - Specimen with infinite length
-[serr2, mr2] = Calc_StrainEnergyReleaseRate(F, M_k, M_0, E, t, AExx1, EIxx1, 'Brussat');
+[serr2, mr2] = Strain_Energy_Release_Rate(F, M_k, M_0, E, t, AExx1, EIxx1, 'Brussat');
 
 % Extract solutions
 G   = serr.G;
@@ -306,7 +306,7 @@ MR = GII./G;
 %% Module 8: Disbond growth rate and Load Cycles
 
 % Crack Growth Rate (model from D. Burger (2005), FM94 adhesive)
-[dbdN, dG1_eq] = calc_CrackGrowthRate(GI, GII, MR, c_0, m_0, c_100);
+[dbdN, dG1_eq] = Crack_Growth_Rate(GI, GII, MR, c_0, m_0, c_100);
 
 % Load cycles for the disbond to grow the element distance
 nraw = dlb./dbdN;

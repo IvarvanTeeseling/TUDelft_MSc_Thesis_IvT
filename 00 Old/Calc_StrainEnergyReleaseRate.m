@@ -1,7 +1,7 @@
-function [serr, mr] = Calc_StrainEnergyReleaseRate(P, M_k, M_0, E, t, EA, D, method)
+function [serr, mr] = Strain_Energy_Release_Rate(P, M_k, M_0, E, t, EA, D, method)
 %% Description
 % Syntax
-%   >[serr, mr] = Calc_StrainEnergyReleaseRate(p, mk, E, t, AE, D)
+%   >[serr, mr] = Strain_Energy_Release_Ratep, mk, E, t, AE, D)
 % Input
 %   >F      : Tensile load (left of the crack tip)
 %   >M_k    : Overlap edge bending moment (left of the crack tip)
