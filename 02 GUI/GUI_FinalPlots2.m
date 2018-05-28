@@ -267,7 +267,11 @@ legend('Mean S_{m,nom}', 'Total Stress S_{tot}','Yield Stress \sigma_{y}')
 ylabel('Stress [MPa]')
 xlabel('Distance x [mm]')
 xlim([x(1,1) x(1,end)]);
-ylim([min(Sm_nom_ad1(:)) max(St_nom_ad1(:))]);
+if max(St_nom_ad1(:)) >= Sy
+    ylim([min(Sm_nom_ad1(:)) max(St_nom_ad1(:))*1.1]);
+else
+    ylim([min(Sm_nom_ad1(:)) Sy*1.1]);
+end
 grid on
 
 % Update handles structure
