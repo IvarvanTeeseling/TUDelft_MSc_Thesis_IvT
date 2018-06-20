@@ -7,75 +7,168 @@ clc;
 %% Module 0: Input
 
 % Adherent material
-AdherentSelect = {'Mono_1' 'Mono_2' 'FML_1'};
-AdherentSelect = AdherentSelect{3};
+AdherentSelect = {'GR Verification' 'Adh Load Verification' 'D. Burger PhD Validation' 'GLARE 4/3 0.4' 'GLARE 4/3 0.3' 'CLT Verification' 'Johnson 1986'};
+AdherentSelect = AdherentSelect{4}
 switch AdherentSelect
-    case 'Mono_1'
+    case 'GR Verification'
+        % Data from Modeling of Adhesively Bonded Joints, page 43
+        % Adherent type indicator
+        AdMat   = 'Metal';
+        
         % Input from E. Verreman
-        E   = 72e9;
-        t   = 0.0032; % [m]
-        v   = 0.33; % [-]
-    case 'Mono_2'
+        E   = 70e9;
+        t   = 0.0016;
+        v   = 0.34;
+    case 'Adh Load Verification'
+        % Data from Two-dimensional analytical solution of elastic stresses
+        % for balanced single-lap joints—Variational method (2014)
+        % Adherent type indicator
+        AdMat   = 'Metal';
+        
         % Monolithic adherent properties
-        E   = 72e9;
-        t   = 0.0035; % [m]
-        v   = 0.2956; % [-]
-    case 'FML_1'
+        E   = 70e9;
+        t   = 0.004; % [m]
+        v   = 0.34; % [-]
+    case 'D. Burger PhD Validation'
+        % Data from the PhD by Daniel Burger, Chapter 6
+        AdMat   = 'Metal';
+        
+        % Monolithic adherent properties
+        E   = 72.45e9;
+        t   = 0.006; % [m]
+        v   = 0.33; % [-]
+    case 'Johnson 1986'
+        % Data from Two-dimensional analytical solution of elastic stresses
+        % for balanced single-lap joints—Variational method (2014)
+        % Adherent type indicator
+        AdMat   = 'Metal';
+        
+        % Monolithic adherent properties
+        E   = 72.45e9;
+        t   = 0.003175; % [m]
+        v   = 0.33; % [-]
+    case 'GLARE 4/3 0.4'
+        % Adherent type indicator
+        AdMat   = 'FML';
+        
         % Aluminum ply properties
-        Al.E1   = 72000e6;
-        Al.E2   = 72000e6;
-        Al.G    = 27068e6;
-        Al.v12  = 0.33;
-        Al.t    = 0.3e-3;
+        Al.E1   = 72000e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.E2   = 72000e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.G    = 27068e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.v12  = 0.33;             % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.t    = 0.4e-3;           % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.Su   = 469e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
-        Al.y1   = 347e6;
-        Al.y2   = 299e6;
-        Al.ct1  = 2.32e-5;
-        Al.ct2  = 2.32e-5;
+        Al.y1   = 347e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.y2   = 299e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.ct1  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.ct2  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
         
         % Glass Fibre ply properties
-        GF.E1   = 48900e6;
-        GF.E2   = 5500e6;
-        GF.G    = 5500e6;
-        GF.v12  = 0.33;
-        GF.t    = 0.133e-3;
-        GF.ct1  = 6.1e-6;
-        GF.ct2  = 26.2e-6;
+        GF.E1   = 48900e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.E2   = 5500e6;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.G    = 5500e6;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.v12  = 0.33;             % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.t    = 0.133e-3;         % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.ct1  = 6.1e-6;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.ct2  = 26.2e-6;          % Data fom: Laminate Stiffness Calculator version rca.xls
         
         % Lay-up (1 = AL, 2 = GF)
-        fml.layer   = [1 2 1 2 1 2 1 2 1];
-        fml.theta   = [0 0 0 0 0 0 0 0 0];
+        fml.layer   = [1 2 2 1 2 2 1 2 2 1];
+        fml.theta   = [0 0 0 0 0 0 0 0 0 0];
         fml.t       = (fml.layer == 1)*Al.t + (fml.layer == 2)*GF.t;
         t = sum(fml.t);
         
-        % Laminate stiffness modulus
-        Modulus = {'Youngs' 'Flexural'};
-        Modulus = Modulus{1};
+    case 'GLARE 4/3 0.3'
+        % Adherent type indicator
+        AdMat   = 'FML';
+        
+        % Aluminum ply properties
+        Al.E1   = 72000e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.E2   = 72000e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.G    = 27068e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.v12  = 0.33;             % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.t    = 0.4e-3;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.Su   = 469e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.y1   = 347e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.y2   = 299e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.ct1  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.ct2  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        
+        % Glass Fibre ply properties
+        GF.E1   = 48900e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.E2   = 5500e6;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.G    = 5500e6;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.v12  = 0.33;             % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.t    = 0.133e-3;         % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.ct1  = 6.1e-6;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.ct2  = 26.2e-6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        
+        % Lay-up (1 = AL, 2 = GF)
+        fml.layer   = [1 2 2 1 2 2 1 2 2 1];
+        fml.theta   = [0 0 0 0 0 0 0 0 0 0];
+        fml.t       = (fml.layer == 1)*Al.t + (fml.layer == 2)*GF.t;
+        t = sum(fml.t);
+        
+    case 'CLT Verification'
+        % Adherent type indicator
+        AdMat   = 'FML';
+        
+        % Aluminum ply properties
+        Al.E1   = 72000e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.E2   = 72000e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.G    = 27068e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.v12  = 0.33;             % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.t    = 0.4e-3;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.Su   = 469e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.y1   = 347e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.y2   = 299e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.ct1  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        Al.ct2  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        
+        % Glass Fibre ply properties
+        GF.E1   = 48900e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.E2   = 5500e6;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.G    = 5500e6;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.v12  = 0.33;             % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.t    = 0.133e-3;         % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.ct1  = 6.1e-6;           % Data fom: Laminate Stiffness Calculator version rca.xls
+        GF.ct2  = 26.2e-6;          % Data fom: Laminate Stiffness Calculator version rca.xls
+        
+        % Lay-up (1 = AL, 2 = GF)
+        fml.layer   = [1 2 1 2 1 2 1];
+        fml.theta   = [0 0 0 90 0 0 0];
+        fml.t       = (fml.layer == 1)*Al.t + (fml.layer == 2)*GF.t;
+        t = sum(fml.t);
 end
 
 % Adhesive material
-AdhesiveSelect = {'FM94' 'adh_1' 'adh_2'};
-AdhesiveSelect = AdhesiveSelect{3};
+AdhesiveSelect = {'FM94 K.06' 'GR_Verification' 'Adh Load Verification' 'Johnson 1986'};
+AdhesiveSelect = AdhesiveSelect{1}
 switch AdhesiveSelect
-    case 'FM94'
-        t_a      = 0.125*10^(-3);
-        E_a      = 3.1e9; % (not from FM94)
-        G_a      = 823e6;
-        v_a      = 0.4; % (not from FM94)
-        c_0      = 5.27*10^(-17);
-        m_0      = 3.78;
-        c_100    = 10^(-17.6);
-    case 'adh_1'
-        % Input from E. Verreman
-        t_a  = 0.3e-3;  % [m]
-        E_a  = 3.1e9; % [Pa]
-        G_a  = 1.1e9; % [Pa]
+    case 'FM94 K.06'
+        t_a      = 0.133*10^(-3);                   % Standard thickness
+        E_a      = 1e9;                             % Data fom: Laminate Stiffness Calculator version rca.xls
+        G_a      = 394e6;                           % Data fom: Laminate Stiffness Calculator version rca.xls
+        v_a      = 0.27;                            % Data fom: Laminate Stiffness Calculator version rca.xls
+        
+        E_a      = G_a*(2*(1+v_a));
+        
+        c_0      = 5.27*10^(-17);                   % D. Burger PhD report, page 71
+        m_0      = 3.78;                            % D. Burger PhD report, page 71
+        c_100    = 10^(-17.68379446640316);         % D. Burger PhD report, page 72, figure 5.11, data read using: https://apps.automeris.io/wpd/
+    case 'GR_Verification'
+        % Data from Modeling of Adhesively Bonded Joints, page 43
+        t_a  = 0.078*0.0016;
+        E_a  = 70e9*0.04;
+        G_a  = 1.1e9;
         v_a  = 0.4;
         % TEMP > not real data
         c_0      = 5.27*10^(-17);
         m_0      = 3.78;
-        c_100    = 10^(-17.6);
-    case 'adh_2'
+        c_100    = 10^(-17.68379446640316);
+    case 'Adh Load Verification'
+        % Data from Two-dimensional analytical solution of elastic stresses
+        % for balanced single-lap joints—Variational method (2014)
         t_a  = 0.2e-3;  % [m]
         E_a  = 0.7e9; % [Pa]
         G_a  = 0.7e9; % [Pa]
@@ -83,57 +176,101 @@ switch AdhesiveSelect
         % TEMP > not real data
         c_0      = 5.27*10^(-17);
         m_0      = 3.78;
-        c_100    = 10^(-17.6);
+        c_100    = 10^(-17.68379446640316);
+    case 'Johnson 1986'
+        % CLS-A from ASTM Round Robin by Johnson 1986
+        t_a  = 0.13e-3;  % [m]
+        E_a  = 1.932e9; % [Pa]
+        G_a  = E_a/(2*(1+0.4)); % [Pa]
+        v_a  = 0.4;
+        % TEMP > not real data
+        c_0      = 5.27*10^(-17);
+        m_0      = 3.78;
+        c_100    = 10^(-17.68379446640316);
 end
 
 % CLS configuration
-ConfigSelect = {'Thesis' 'Config_1' 'Config_2'};
-ConfigSelect = ConfigSelect{1};
+ConfigSelect = {'BOPACS' 'WSLS R. Hanx' 'Run_00_Trials' 'GR_Verification' 'Adh Load Verification' 'Johnson 1986' 'D. Burger PhD Validation'};
+ConfigSelect = ConfigSelect{3}
 switch ConfigSelect
-    case 'Thesis'
+    case 'BOPACS'
         % Dimensions from Bachelorthesis K. Hoidus, page 35
-        L_1 = 0.25+0.145;
+        L_1 = 0.05+0.145;
         L_2 = 0.145;
         d   = 0.05;
         b_0  = 0;
-    case 'Config_1'
-        L_1 = 0.0032/0.005;
-        L_2 = 0.0032/0.005*0.75;
+    case 'WSLS R. Hanx'
+        % Dimensions of the WSLS from R. Hanx thesis
+        L_1 = 0.400-0.030;
+        L_2 = 0.030;
+        d   = 0.500;
+        b_0  = 0;
+    case 'Run_00_Trials'
+        % Run_00_Trials CLS configuration
+        L_1 = 0.07+0.145;
+        L_2 = 0.145;
         d   = 0.05;
         b_0  = 0;
-    case 'Config_2'
-        L_1 = 0.85;
-        L_2 = 0.75;
+    case 'GR_Verification'
+        % Data from Modeling of Adhesively Bonded Joints, page 43
+        L_1 = 0.01+0.05;
+        L_2 = 0.01;
         d   = 0.05;
         b_0  = 0;
+    case 'Adh Load Verification'
+        L_1 = 0.04+0.01;
+        L_2 = 0.01;
+        d   = 0.05;
+        b_0  = 0;
+    case 'Johnson 1986'
+        L_1 = 0.305;
+        L_2 = 0.254;
+        d   = 0.0254;
+        b_0 = 0.101;
+    case 'D. Burger PhD Validation'
+        % Data from the PhD by Daniel Burger, Chapter 6
+        L_1 = 0.300-0.025;
+        L_2 = 0.075;
+        d   = 0.025;
+        b_0 = 0.015;
 end
 
+% Plane stress/strain
+StressState = {'Plane Stress' 'Plane Strain'};
+StressState = StressState{2}
+
 % Applied load
-LCSelect = {'Thesis' 'LC_1' 'LC_2'};
-LCSelect = LCSelect{2};
+LCSelect = {'BOPACS K. Hoidus' 'WSLS R. Hanx' 'Johnson 1986' 'D. Burger PhD Validation'};
+LCSelect = LCSelect{4}
 switch LCSelect
-    case 'Thesis'
-        % Load case from: 75% from the load in Bachelorthesis K. Hoidus P49
-        S_max   = (12.74+10.42)*1e3/(d*t)*0.70; % [N/m^2]
+    case 'BOPACS K. Hoidus'
+        % Load case from: 200% from the load in Bachelorthesis K. Hoidus P49
+        S_max   = 1*23.16*1e3/(d*t); % [N/m^2]
         R_load  = 0.1;
-    case 'LC_1'
+    case 'WSLS R. Hanx'
         % Load case from R. Hanx
-        S_max   = 180*1e3/t*1.5;
+        S_max   = 230e3/t;
         R_load  = 0.1;
-    case 'LC_2'
+    case 'Johnson 1986'
+        S_max   = 4.378e5/t;
+        R_load  = 0.1;
+    case 'D. Burger PhD Validation'
+        % Data from the PhD by Daniel Burger, Chapter 6
+        S_max   = 14e3/(d*t);
+        R_load  = 0.1;
 end
 
 % Support boundary conditions (only for overlap loads)
-BC = {'RollerRoller' 'ClampedClamped'};
-BC = BC{2};
+BC = {'RR' 'CC'};
+BC = BC{1}
 
 % Numerical settings - Number of elements
-q = 1000;
+q = 30;
 % Numerical settings - Number of cracked elements
-q_max = ceil(q*8/10);
+q_max = ceil(q*9/10);
 % Numerical settings - Discretization method
 DiscretizeMethod = {'LeftBoundary' 'Central' 'RightBoundary'};
-DiscretizeMethod = DiscretizeMethod{2};
+DiscretizeMethod = DiscretizeMethod{2}
 
 %% Module 1: Geometry and Load Paramaters
 
@@ -157,48 +294,46 @@ S       = permute(S,[3,1,2]);   % size [1x1xn] where n = # loads
 
 %% Module 2: FML Laminate Properties
 
-if exist('Al','var') && exist ('GF','var') && exist ('fml','var')
-    % Generate (1) the ABD matrix, (2) Compliance matrix and (3) laminate equivalent Modulus 
-    % The laminate equivalent modulus is given for a symmetric,
-    % balanced laminate where A_12 = 0, A_26 = 0, D_12 ~ 0, D_26 ~ 0 and B_ij = 0
-    [ABD, FMLm, FMLb] = ABD_Matrix_Generator(Al, GF, fml);
+if strcmp(AdMat, 'FML')
     
-    % Laminate Modulus
-    switch Modulus
-        case 'Youngs'
-            % Young's Modulus
-            E_x     = FMLm.Ex;
-            E_y     = FMLm.Ey;
-            v_xy    = FMLm.vxy;
-            v_yx    = FMLm.vyx;
-            G_xy    = FMLm.Gxy;
-            E       = E_x;
-            v       = v_xy;
-        case 'Flexural'
-            % Flexural Modulus
-            E_x     = FMLb.E1;
-            E_y     = FMLb.E2;
-            v_xy    = FMLb.v12;
-            v_yx    = FMLb.v21;
-            G_xy    = FMLb.G12;
-            E       = E_x;
-            v       = v_xy;
-    end
+    % ABD matrix and equivalent laminate properties
+    [ABD, FML] = ABD_Matrix_Generator(Al, GF, fml, 'mem');
+    
+    E_x     = FML.Ex;
+    E_x_ps  = FML.Ex_ps;
+    E_y     = FML.Ey;
+    v_xy    = FML.vxy;
+    v_yx    = FML.vyx;
+    G_xy    = FML.Gxy;
+    E       = E_x;
+    v       = v_xy;
 end
 
-% Membrane stiffness
-AExx1 = E*t;
-AExx0 = E*t*2 + E_a*t_a;
+% Adjust for plane strain if applicable
+if strcmp(StressState, 'Plane Strain')
+    if strcmp(AdMat, 'FML')
+        E = E_x_ps;
+    else
+        E = E/(1-v^2);
+    end
+    
+end
 
-% Bending stifness
-EIxx1 = E*t^3/12;
-EIxx0 = 2*E*(t^3/12+t*(t/2+t_a/2)^2)+E_a*t_a^3/12;
+% Membrane stiffness (only for identical adherends)
+AExx1       = E*t;
+AExx0       = E*t*2 + E_a*t_a;
+AExx0_ta0   = E*t*2;                                        % Assuming t_a~0
+
+% Bending stifness (only for identical adherends)
+EIxx1       = E*t^3/12;
+EIxx0       = 2*E*(t^3/12+t*(t/2+t_a/2)^2)+E_a*t_a^3/12;
+EIxx0_ta0   = E*(2*t)^3/12;                                 % Assuming t_a~0
 
 % Element length
 dla = l_A0/q;
 dlb = l_B0/q;
 
-%% Module 3: Discretize adherents
+%% Module 3: Discretize adherends
 
 switch DiscretizeMethod
     case 'LeftBoundary'
@@ -212,30 +347,31 @@ switch DiscretizeMethod
         x0 = dlb:dlb:l_B0;
 end
 
-% Create x0 vector for each time an entire element has been cracked
+% x1 matrix where x1 spans l_A (free adherent)
 x1 = x1.*ones(q_max,1);
-x1 = x1 - dla*ones(q_max,q).*(0:q_max-1)';
+x1 = x1-dla*ones(q_max,q).*(0:q_max-1)';
 x1 = x1.*triu(ones(size(x1)));
 
+% x0 matrix where x0 spans l_B (overlap region)
 x0 = x0.*ones(q_max,1);
-x0 = x0 - dlb*ones(q_max,q).*(0:q_max-1)';
+x0 = x0-dlb*ones(q_max,q).*(0:q_max-1)';
 x0 = x0.*triu(ones(size(x0)));
 
-% Free adherent (l_A) and overlap (l_B) length
-l_A = l_A0*ones(q_max,1) + dlb*(0:q_max-1)';
-l_B = l_B0*ones(q_max,1) - dlb*(0:q_max-1)';
+% l_A and l_B for each crack increment
+l_A = l_A0*ones(q_max,1)+dlb*(0:q_max-1)';
+l_B = l_B0*ones(q_max,1)-dlb*(0:q_max-1)';
 
 %% Module 4: Overlap Edge Loads
 
 % Overlap edge loads (minumum and maximum)
-[M, Q] = Overlap_Edge_Loads(x1, x0, P, EIxx1, EIxx0, l_A, l_B, t, t_a, BC);
+[M, Q, V] = Overlap_Edge_Loads(x1, x0, P, EIxx1, EIxx0_ta0, l_A, l_B, t, 0, BC);
 
 % Extract solutions
 M_k  = M.A; % Overlap bending moment based on M_1(x1=l_A)
 Q_k  = Q.A; % Overlap shear force based on Q_1(x1=l_A)
-Q_kc = Q.C; % Overlap shear force based on equilibrium
-M_0 = M.B;  % Overlap bending moment based on M_0(x0=0)
-Q_0 = Q.B;  % Overlap shear force based on Q_0(x0=0)
+V_k  = V;   % Overlap shear force based on equilibrium
+M_0  = M.B; % Overlap bending moment based on M_0(x0=0)
+Q_0  = Q.B; % Overlap shear force based on Q_0(x0=0)
 
 %% Module 5: Adhesive Stresses and Overlap Adherent Load Distributions
 
@@ -248,126 +384,85 @@ x00 = x00.*triu(ones(size(x00)));
 F = P*cos(alpha);
 
 % Luo and Tong (2004, 2007) > adhesive thickness inlcuded
-[Shear_a, Peel_a, Loads_ad1, Loads_ad2] = Adhesive_Stresses_Adherent_Loads(x00, F, M_k, Q_kc, EIxx1, AExx1, l_B, E, t, E_a, G_a, t_a);
+[Shear_a, Peel_a] = Overlap_Adhesive_Stresses(x00, F, M_k, V_k, l_B, E, t, E_a, G_a, t_a);
 
 % Goland and Reissner (1944) > adhesive thickness excluded (ta = 0)
-%[Shear_a2, Peel_a2] = Adhesive_Stresses_GR(x00, P, l_B, E, t, Ea, Ga, ta, v);
+%[Shear_a2, Peel_a2] = Adhesive_Stresses_GR(x00, P, l_B, E, t, E_a, G_a, t_a, v);
+%[Shear_a3, Peel_a3] = Overlap_Adhesive_Stresses_LT(x0, F, M_k, V_k, l_B, E, G, t, E_a, G_a, t_a, AExx1, EIxx1);
+
+[Loads_ad1, Loads_ad2] = Overlap_Adherent_Load_Distributions(x0, t, t_a, F, V_k, M_k, Shear_a, Peel_a, 'num');
 
 %% Module 6: AL Facesheet Strain and Stress Cycle
 
-if exist('Al','var') && exist ('GF','var') && exist ('fml','var')
-    % Stress and strain cycles in the AL facesheets (adjecent to the
-    % adhesive interface)
-    [Sxx, exx] = Stress_Strain_Cycle(Loads_ad1.N, Loads_ad1.M, Loads_ad2.N, Loads_ad2.M, ABD, AExx1, EIxx1);
+if strcmp(AdMat, 'FML')
     
-    % R-ratio (Smin/Smax)
-    R_nom_ad1 = Sxx.ad1(:,:,1)./Sxx.ad1(:,:,2);
-    R_nom_ad2 = Sxx.ad2(:,:,1)./Sxx.ad2(:,:,2);
-    R_nom_ad1(isnan(R_nom_ad1)) = 0;
-    R_nom_ad2(isnan(R_nom_ad2)) = 0;
-    
-    % Find the amplitude and mean stress of the stress cycle
-    Sm_nom_ad1 = (1+R_nom_ad1)./2.*Sxx.ad1(:,:,2);
-    Sa_nom_ad1 = (1-R_nom_ad1)./2.*Sxx.ad1(:,:,2);
-    Sm_nom_ad2 = (1+R_nom_ad2)./2.*Sxx.ad2(:,:,2);
-    Sa_nom_ad2 = (1-R_nom_ad2)./2.*Sxx.ad2(:,:,2);
+    [S_xx, e_xx, R_nom, Sm_nom, Sa_nom] = Stress_Strain_Cycle(Loads_ad1.N, Loads_ad1.M, Loads_ad2.N, Loads_ad2.M, ABD, AExx1, EIxx1);
+
 end
 
 %% Module 7: Strain Energy Release Rate
 
-% SERR and Mode Ratio components - Specimen with finite length
-[serr, mr] = Strain_Energy_Release_Rate(F, M_k, M_0, E, t, AExx1, EIxx1, 'Fern1und1991');
-
-% SERR and Mode Ratio componentes - Specimen with infinite length
-[serr2, mr2] = Strain_Energy_Release_Rate(F, M_k, M_0, E, t, AExx1, EIxx1, 'Brussat');
-
-% Extract solutions
-G   = serr.G;
-GI  = serr.GI;
-GII = serr.GII;
-MR  = mr;
+[serr, mr]          = Strain_Energy_Release_Rate('Fern1und1991', AExx1, EIxx1, P, M_k, M_0);
+[serr2, mr2]        = Strain_Energy_Release_Rate('Verreman1992', t_a, E_a, G_a, max(Peel_a,[],2), max(Shear_a,[],2));
+[serr_inf, mr_inf]  = Strain_Energy_Release_Rate('Brussat1977', t, E, AExx1, EIxx1, EIxx0_ta0, P, M_k, M_0);
 
 % Enforce DAF effect
 q1      = round(1/3*q_max);
 q2      = round(2/3*q_max);
-daf_I   = 0.75;
+daf_I   = 1;
 daf_II  = 0;
 x_daf   = 0:1:(q2-q1);
 
 DAF_I   = daf_I*sin(pi/x_daf(end)*x_daf)';
 DAF_II  = daf_II*sin(pi/x_daf(end)*x_daf)';
 
-GI(q1:q2,:,:) = GI(q1:q2,:,:)-DAF_I.*GI(q1:q2,:,:);
-GII(q1:q2,:,:) = GII(q1:q2,:,:)-DAF_II.*GII(q1:q2,:,:);
-G = GI + GII;
+serr.GI(q1:q2,:,:)   = serr.GI(q1:q2,:,:)-DAF_I.*serr.GI(q1:q2,:,:);
+serr.GII(q1:q2,:,:)  = serr.GII(q1:q2,:,:)-DAF_II.*serr.GII(q1:q2,:,:);
+serr.G               = serr.GI + serr.GII;
+serr.MR              = serr.GII./serr.G;
 
-MR = GII./G;
-
-%% Module 8: Disbond growth rate and Load Cycles
+%% Module 8: Adhesive disbond growth rate
 
 % Crack Growth Rate (model from D. Burger (2005), FM94 adhesive)
-[dbdN, dG1_eq] = Crack_Growth_Rate(GI, GII, MR, c_0, m_0, c_100);
-
-% Load cycles for the disbond to grow the element distance
-nraw = dlb./dbdN;
-% Round and store removed decimals
-n = floor(nraw);
-ncut = nraw - n;
+[dbdN, dG1_eq] = Crack_Growth_Rate(serr.GI, serr.GII, serr.MR, c_0, m_0, c_100, 10^(-10));
 
 %% Module 9: Fatigue Accumulation
 
-% Transform amplitude to a Sm = 0 cycle using the Goodman Relation
-Sa_nom_sm0_ad1 = Sa_nom_ad1./(1+Sm_nom_ad1/Al.Su);
-Sa_nom_sm0_ad2 = Sa_nom_ad2./(1+Sm_nom_ad2/Al.Su);
+if strcmp(AdMat, 'FML')
+    
+    % Cycle increment (=inf when dbdN < fatigue threshold)
+    dN_rw           = inf(size(dbdN));
+    dN_rw(dbdN>0)   = dlb./dbdN(dbdN>0);
+    dN              = floor(dN_rw);
+    
+    [Minor_csm, Minor, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom.ad1, Sm_nom.ad1, R_nom.ad1, Al.Su, dN);
 
-% Temp value for now
-R_SN = 0.1;
-
-% Find equivalent S-N amplitude stress cycle
-Sa_SN_ad1 = Sa_nom_sm0_ad1./(1+Sa_nom_sm0_ad1*((2/(1-R_SN)-1)/Al.Su));
-Sa_SN_ad2 = Sa_nom_sm0_ad2./(1+Sa_nom_sm0_ad2*((2/(1-R_SN)-1)/Al.Su));
-
-% Military Handbook - Metallic Materials and Elements for Aerospace Vehicle Structures
-% Page 115; Aluminium 2024; Bare sheet, 0.090-inch (2.286 mm) thick
-S_eq_ad1 = Sxx.ad1(:,:,2).*(1-R_nom_ad1).^0.56; % Equivalent amplitude S
-S_eq_ad1 = S_eq_ad1*1.45038e-7;                 % Pa to ksi
-a = S_eq_ad1-15.8;
-a(a<0) = 0;
-Nf_ad1 = 10.^(11.1-3.97*log10(a));              % Nr. cycles untill fatigue initiation
-
-% Military Handbook - Metallic Materials and Elements for Aerospace Vehicle Structures
-% Page 111; Aluminium 2024; Rolled bar
-S_eq_ad2 = Sa_nom_ad1.*(1-R_nom_ad1).^0.52;
-S_eq_ad2 = S_eq_ad2*1.45038e-7;
-Nf_ad2 = 10.^(20.83-9.09*log10(S_eq_ad2));
-
-% Fatigue damage accumulation
-% > For now use the rolled bar; the -15.8 in the thin sheet causes issues;
-% <-15.8 is the fatigue limit?
-Minor = n./Nf_ad1;                              % Damage per cracked element
-MinorSum = cumsum(Minor,1);                     % Accumulated total damage
+end
 
 %% Module 10: Results Plotting
 
 % Store in application data to allow acces by the GUI
-setappdata(0,'N1',Loads_ad1.N);
-setappdata(0,'Q1',Loads_ad1.Q);
-setappdata(0,'M1',Loads_ad1.M);
-setappdata(0,'N2',Loads_ad2.N);
-setappdata(0,'Q2',Loads_ad2.Q);
-setappdata(0,'M2',Loads_ad2.M);
-setappdata(0,'Shear_a',Shear_a);
-setappdata(0,'Peel_a',Peel_a);
-setappdata(0,'N',cumsum(n));
-setappdata(0,'dbdN',dbdN);
-setappdata(0,'MinorSum',MinorSum);
-setappdata(0,'Sm_nom_ad1',Sm_nom_ad1);
-setappdata(0,'Sa_nom_ad1',Sa_nom_ad1);
-setappdata(0,'GI', GI);
-setappdata(0,'GII', GII);
-setappdata(0,'dG1_eq', dG1_eq);
-setappdata(0,'x',x00*1000);
-setappdata(0,'Sy',Al.y1);
-
-run('GUI_FinalPlots');
-run('GUI_FinalPlots2');
+if strcmp(AdMat, 'FML')
+    setappdata(0,'N1',Loads_ad1.N);
+    setappdata(0,'Q1',Loads_ad1.Q);
+    setappdata(0,'M1',Loads_ad1.M);
+    setappdata(0,'N2',Loads_ad2.N);
+    setappdata(0,'Q2',Loads_ad2.Q);
+    setappdata(0,'M2',Loads_ad2.M);
+    setappdata(0,'Shear_a',Shear_a);
+    setappdata(0,'Peel_a',Peel_a);
+    setappdata(0,'N',cumsum(dN));
+    setappdata(0,'dbdN',dbdN);
+    setappdata(0,'MinorSum',Minor_csm);
+    setappdata(0,'Sm_nom_ad1',Sm_nom.ad1);
+    setappdata(0,'Sa_nom_ad1',Sa_nom.ad1);
+    setappdata(0,'GI', GI);
+    setappdata(0,'GII', GII);
+    setappdata(0,'dG1_eq', dG1_eq);
+    setappdata(0,'G_inf', serr_inf.G);
+    setappdata(0,'x',x00*1000);
+    setappdata(0,'Sy',Al.y1);
+    
+    run('GUI_FinalPlots');
+    run('GUI_FinalPlots2');
+end

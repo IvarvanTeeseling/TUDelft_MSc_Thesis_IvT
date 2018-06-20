@@ -1,22 +1,22 @@
-function [abd, LmM, LmB] = ABD_Matrix_Generator(Al, GF, skn)
+function [abd, lam] = ABD_Matrix_Generator(Al, GF, skn, mod)
 %% Description
-% Syntax 
+% Syntax
 %   >ABD_Matrix_Generator(Al, GF, skn)
-% Input  
+% Input
 %   >Al     : Structurer with aluminium ply properties
 %               .Ex  = Youngs modulus in x direction
 %               .Ey  = Youngs modulus in y direction
 %               .G   = Shear modulus
 %               .v12 = Poisson ratio
 %               .ct1 = Thermal coefficient in the x direction
-%               .ct2 = Thermal coefficient in the x direction 
+%               .ct2 = Thermal coefficient in the x direction
 %   >GF     : Structurer with glass fibre ply properties
 %               .E1 = Youngs modulus in x direction
 %               .E2 = Youngs modulus in y direction
 %               .G  = Shear modulus
 %               .v12 = Poisson ratio
 %               .ct1 = Thermal coefficient in the x direction
-%               .ct2 = Thermal coefficient in the x direction 
+%               .ct2 = Thermal coefficient in the x direction
 %   >skin   : Structurer the laminate lay-up properties
 %               .layer = [1xn] vector with index indicating the ply
 %               material; n = # of plies
@@ -25,14 +25,15 @@ function [abd, LmM, LmB] = ABD_Matrix_Generator(Al, GF, skn)
 %               .t = [1xn] vector with the ply thicknesses; n = # of plies
 %               .theta = ; [1xn] vector with the ply angles (ply 1-axis
 %               w.r.t. the global, laminate x-axis); n = # of plies
+%   >mod    : membrane of flexural for the equivalent modulus output
 % Output
 %   >abd    : Structurer
-%               .ABD    = Laminate ABD matrix
+%               .ABD    = Laminate ABD matrixsize
 %               .comp   = Laminate compliance matrix
 %               .stiff  = Laminante ply stiffnesses
-%               .zply   = Ply Z-coordinates 
-%   >LmM    : Laminate Young's Modulus
-%   >LmB    : Laminate Bending Modulus
+%               .zply   = Ply Z-coordinates
+%   >Lam    : Laminate equivalent Modulus
+%               > NOTE: ONLY FOR SYMMETRIC, BALANCED LAMINATES
 % Description
 %
 % -------------------------------------------------------------------------
@@ -47,16 +48,16 @@ ct          = zeros(3,1,length(skn.theta));
 
 % Create stiffness matrix for each ply
 for i = 1:length(skn.theta)
-    if skn.layer(i) == 1
-        % Aluminium ply
+    
+    if skn.layer(i) == 1 % > Aluminium ply
         % Ply stiffness matrix
         [Qmatrix] = QMatrix(Al.E1, Al.E2, Al.G, Al.v12);
         % Ply z-coordinate
         z(i+1)=z(i)+skn.t(i);
         % Transform the thermal exp. coeficients to the global laminate axis
         ct(:,:,i) = skn.t(i)/h*TransformThermalC(Al.ct1, Al.ct2, skn.theta(i));
-    elseif skn.layer(i) == 2
-        % Glass fibre ply
+        
+    elseif skn.layer(i) == 2 % > Glass fibre ply
         % Ply stiffness matrix
         [Qmatrix] = QMatrix(GF.E1, GF.E2, GF.G, GF.v12);
         % Ply z-coordinate
@@ -64,6 +65,7 @@ for i = 1:length(skn.theta)
         % Transform the thermal exp. coeficients to the global laminate axis
         ct(:,:,i) = skn.t(i)/h*TransformThermalC(GF.ct1, GF.ct2, skn.theta(i));
     end
+    
     % Transformation matrix
     M(:,:,i) = TransformationMatrix(skn.theta(i));
     
@@ -74,8 +76,8 @@ end
 %% Global Stiffness Matrix for Thick Laminates (ABD Matrix)
 
 % Pre-allocate memory
-Am = zeros(3,3); 
-Bm = zeros(3,3); 
+Am = zeros(3,3);
+Bm = zeros(3,3);
 Dm = zeros(3,3);
 
 for i = 1:length(skn.theta)
@@ -96,24 +98,30 @@ Smat = ABD^(-1);
 
 %% Outputs
 % ABD and compliance matrix
-abd.ABD     = ABD;   
+abd.ABD     = ABD;
 abd.comp    = Smat;
 abd.CT      = ct;
 abd.stiff   = Stiffness;
 abd.zply    = z;
 
-% Laminate Young's Modulus
-LmM.Ex  = 1/(h*Smat(1,1));
-LmM.Ey  = 1/(h*Smat(2,2));
-LmM.Gxy = 1/(h*Smat(3,3));
-LmM.vxy = -Smat(1,2)/Smat(1,1);
-LmM.vyx = -Smat(1,2)/Smat(2,2);
-% Laminate Bending Modulus
-LmB.Ex  = 12/(h^3*Smat(4,4));
-LmB.Ey  = 12/(h^3*Smat(5,5));
-LmB.Gxy = 12/(h^3*Smat(6,6));
-LmB.vxy = -Smat(4,5)/Smat(4,4);
-LmB.vyx = -Smat(4,5)/Smat(5,5);
+switch mod
+    case 'mem'
+        % Laminate Young's Modulus
+        lam.Ex      = 1/(h*Smat(1,1));
+        lam.Ex_ps   = 1/h*ABD(1,1);     % Ex_m for plane strain in y
+        lam.Ey      = 1/(h*Smat(2,2));
+        lam.Gxy     = 1/(h*Smat(3,3));
+        lam.vxy     = -Smat(1,2)/Smat(1,1);
+        lam.vyx     = -Smat(1,2)/Smat(2,2);
+    case 'flex'
+        % Laminate Bending Modulus
+        lam.Ex      = 12/(h^3*Smat(4,4));
+        lam.Ex_ps   = 1/h*ABD(4,4);     % Ex_b for plane strain in y
+        lam.Ey      = 12/(h^3*Smat(5,5));
+        lam.Gxy     = 12/(h^3*Smat(6,6));
+        lam.vxy     = -Smat(4,5)/Smat(4,4);
+        lam.vyx     = -Smat(4,5)/Smat(5,5);
+end
 end
 
 function [Q] = QMatrix(E1,E2,G12,v12)
@@ -129,13 +137,13 @@ Q21 = v12*E2/(1-v12*v21);
 Q22 = E2/(1-v12*v21);
 Q23 = 0;
 Q31 = 0;
-Q32 = 0;                       
-Q33 = G12;                     
+Q32 = 0;
+Q33 = G12;
 
 % Construct the ply stiffness matrix
-Q = [Q11 Q12 Q13;  
-     Q21 Q22 Q23;  
-     Q31 Q32 Q33];
+Q = [Q11 Q12 Q13;
+    Q21 Q22 Q23;
+    Q31 Q32 Q33];
 end
 
 function M = TransformationMatrix(theta)

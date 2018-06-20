@@ -138,8 +138,10 @@ function axes_Minor_CreateFcn(hObject, eventdata, handles)
 
 % Hint: place code in OpeningFcn to populate axes_Minor
 
-x = getappdata(0, 'x');
-MinorSum = getappdata(0, 'MinorSum');
+x           = getappdata(0, 'x');
+MinorSum    = getappdata(0, 'MinorSum');
+
+x           = x(1:length(MinorSum));
 
 hold on
 handles.PlotMinor1 = plot(x(1,:), MinorSum(end,:),'b');
@@ -166,24 +168,12 @@ function axes_b_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: place code in OpeningFcn to populate axes_b
-% if isappdata(0, 'n')
-%     n = getappdata(0, 'n');
-% else
-%     n = evalin('base','n');
-%     setappdata(0, 'n', n);
-% end
-% 
-% if isappdata(0, 'x')
-%     x = getappdata(0, 'x');
-% else
-%     x = evalin('base','x00');
-%     setappdata(0, 'x', x);
-% end
 
 N = getappdata(0, 'N');
 x = getappdata(0, 'x');
 
 x = x(1,1:size(x,1))-x(1,1);
+x = x(1:length(N));
 
 hold on
 handles.Plotb = plot(N, x,'b');
@@ -206,26 +196,12 @@ function axes_dbdN_CreateFcn(hObject, eventdata, handles)
 
 % Hint: place code in OpeningFcn to populate axes_dbdN
 
-% if isappdata(0, 'n')
-%     n = getappdata(0, 'n');
-% else
-%     n = evalin('base','n');
-%     setappdata(0, 'n', n);
-% end
-% 
-% if isappdata(0, 'dbdN')
-%     dbdN = getappdata(0, 'dbdN');
-% else
-%     dbdN = evalin('base','dbdN');
-%     setappdata(0, 'dbdN', dbdN);
-% end
+N       = getappdata(0, 'N');
+dbdN    = getappdata(0, 'dbdN');
 
-N = getappdata(0, 'N');
-dbdN = getappdata(0, 'dbdN');
+dbdN    = dbdN(1:length(N));
 
-hold on
 handles.PlotdbdN = plot(N, dbdN,'b');
-hold off
 title('Crack growth rate (db/dN)')
 ylabel('Growth Rate [mm/cycle]')
 xlabel('Number of load cycles (N) [-]')
@@ -289,18 +265,20 @@ x   = getappdata(0, 'x');
 GI  = getappdata(0, 'GI');
 GII = getappdata(0, 'GII');
 G   = GI + GII;
+G_inf = getappdata(0, 'G_inf');
 
 hold on
 handles.PlotG   = plot(x(1,1:size(x,1)), G(:,:,2),'r');
 handles.PlotGI  = plot(x(1,1:size(x,1)), GI(:,:,2),'b');
 handles.PlotGII = plot(x(1,1:size(x,1)), GII(:,:,2),'g');
+handles.PlotG_inf = plot(x(1,1:size(x,1)), ones(1,size(G(:,:,2),1))*G_inf(:,:,2),'--r');
 hold off
 title('Strain Energy Release Rate')
 legend('G', 'G_{I}','G_{II}')
 ylabel('SERR')
 xlabel('Distance x [mm]')
 xlim([x(1,1) x(1,end)]);
-ylim([0 max(G(:))]);
+ylim([0 max(G(:))*1.1]);
 grid on
 
 % Update handles structure
