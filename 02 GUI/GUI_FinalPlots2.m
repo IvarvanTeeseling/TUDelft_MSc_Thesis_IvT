@@ -123,11 +123,12 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 
 x = getappdata(0, 'x');
+N = getappdata(0, 'N');
 
 set(hObject, 'Min', 1);
-set(hObject, 'Max', size(x,1));
-set(hObject, 'Value', size(x,1));
-set(hObject, 'SliderStep', [10/(size(x,1)-1) , 100/(size(x,1)-1)]);
+set(hObject, 'Max', size(N,1));
+set(hObject, 'Value', size(N,1));
+set(hObject, 'SliderStep', [10/(size(N,1)-1) , 100/(size(N,1)-1)]);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -140,8 +141,6 @@ function axes_Minor_CreateFcn(hObject, eventdata, handles)
 
 x           = getappdata(0, 'x');
 MinorSum    = getappdata(0, 'MinorSum');
-
-x           = x(1:length(MinorSum));
 
 hold on
 handles.PlotMinor1 = plot(x(1,:), MinorSum(end,:),'b');
@@ -172,8 +171,7 @@ function axes_b_CreateFcn(hObject, eventdata, handles)
 N = getappdata(0, 'N');
 x = getappdata(0, 'x');
 
-x = x(1,1:size(x,1))-x(1,1);
-x = x(1:length(N));
+x = x(1,1:size(N))-x(1,1);
 
 hold on
 handles.Plotb = plot(N, x,'b');
@@ -198,8 +196,6 @@ function axes_dbdN_CreateFcn(hObject, eventdata, handles)
 
 N       = getappdata(0, 'N');
 dbdN    = getappdata(0, 'dbdN');
-
-dbdN    = dbdN(1:length(N));
 
 handles.PlotdbdN = plot(N, dbdN,'b');
 title('Crack growth rate (db/dN)')
