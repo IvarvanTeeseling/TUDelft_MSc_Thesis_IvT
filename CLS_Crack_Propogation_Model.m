@@ -241,7 +241,7 @@ StressState = StressState{2}
 
 % Applied load
 LCSelect = {'BOPACS K. Hoidus' 'WSLS R. Hanx' 'Johnson 1986' 'D. Burger PhD Validation'};
-LCSelect = LCSelect{4}
+LCSelect = LCSelect{2}
 switch LCSelect
     case 'BOPACS K. Hoidus'
         % Load case from: 200% from the load in Bachelorthesis K. Hoidus P49
@@ -249,7 +249,7 @@ switch LCSelect
         R_load  = 0.1;
     case 'WSLS R. Hanx'
         % Load case from R. Hanx
-        S_max   = 230e3/t;
+        S_max   = 1.5*230e3/t;
         R_load  = 0.1;
     case 'Johnson 1986'
         S_max   = 4.378e5/t;
@@ -262,10 +262,10 @@ end
 
 % Support boundary conditions (only for overlap loads)
 BC = {'RR' 'CC'};
-BC = BC{1}
+BC = BC{2}
 
 % Numerical settings - Number of elements
-q = 30;
+q = 3000;
 % Numerical settings - Number of cracked elements
 q_max = ceil(q*9/10);
 % Numerical settings - Discretization method
@@ -409,7 +409,7 @@ end
 % Enforce DAF effect
 q1      = round(1/3*q_max);
 q2      = round(2/3*q_max);
-daf_I   = 1;
+daf_I   = 0;
 daf_II  = 0;
 x_daf   = 0:1:(q2-q1);
 
@@ -421,22 +421,21 @@ serr.GII(q1:q2,:,:)  = serr.GII(q1:q2,:,:)-DAF_II.*serr.GII(q1:q2,:,:);
 serr.G               = serr.GI + serr.GII;
 serr.MR              = serr.GII./serr.G;
 
-%% Module 8: Adhesive disbond growth rate
+%% Module 8: Adhesive DGR and numerical integration
 
 % Crack Growth Rate (model from D. Burger (2005), FM94 adhesive)
 [dbdN, dG1_eq] = Crack_Growth_Rate(serr.GI, serr.GII, serr.MR, c_0, m_0, c_100, 10^(-10));
 
+if dbdN(1) == 0
+    error('Error. No adhesive disbond growth exists..!');
+end
+
 %% Module 9: Fatigue Accumulation
 
 if strcmp(AdMat, 'FML')
+        
+    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom.ad1, Sm_nom.ad1, R_nom.ad1, Al.Su, dbdN, dlb);
     
-    % Cycle increment (=inf when dbdN < fatigue threshold)
-    dN_rw           = inf(size(dbdN));
-    dN_rw(dbdN>0)   = dlb./dbdN(dbdN>0);
-    dN              = floor(dN_rw);
-    
-    [Minor_csm, Minor, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom.ad1, Sm_nom.ad1, R_nom.ad1, Al.Su, dN);
-
 end
 
 %% Module 10: Results Plotting
@@ -452,12 +451,12 @@ if strcmp(AdMat, 'FML')
     setappdata(0,'Shear_a',Shear_a);
     setappdata(0,'Peel_a',Peel_a);
     setappdata(0,'N',cumsum(dN));
-    setappdata(0,'dbdN',dbdN);
+    setappdata(0,'dbdN',dbdN(1:length(dN)));
     setappdata(0,'MinorSum',Minor_csm);
     setappdata(0,'Sm_nom_ad1',Sm_nom.ad1);
     setappdata(0,'Sa_nom_ad1',Sa_nom.ad1);
-    setappdata(0,'GI', GI);
-    setappdata(0,'GII', GII);
+    setappdata(0,'GI', serr.GI);
+    setappdata(0,'GII', serr.GII);
     setappdata(0,'dG1_eq', dG1_eq);
     setappdata(0,'G_inf', serr_inf.G);
     setappdata(0,'x',x00*1000);
