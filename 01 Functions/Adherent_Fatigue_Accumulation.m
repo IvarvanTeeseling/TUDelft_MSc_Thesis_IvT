@@ -1,4 +1,4 @@
-function [Minor_csm, Minor, N_f] = Adherent_Fatigue_Accumulation(method, Sa_nom, Sm_nom, R_nom, Su, dN)
+function [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation(method, Sa_nom, Sm_nom, R_nom, Su, dbdN, dlb)
 
 N_f = inf(size(Sa_nom));
 
@@ -29,33 +29,78 @@ switch method
         %   > Military Handbook - Metallic Materials and Elements for Aerospace Vehicle Structures
         %   > Page 3-111; Aluminium 2024; Rolled bar
         S_max = Sa_nom+Sm_nom;
-        % Equivalent maximum stress 
-        S_eq = S_max.*(1-R_nom_ad1).^0.52;  
+        % Equivalent maximum stress
+        S_eq = S_max.*(1-R_nom_ad1).^0.52;
         % Pa to ksi
-        S_eq = S_eq*1.45038e-7;                          
+        S_eq = S_eq*1.45038e-7;
         % Nr. cycles untill fatigue initiation
-        N_f = 10.^(20.83-9.09*log10(S_eq));             
+        N_f = 10.^(20.83-9.09*log10(S_eq));
 end
 
 %% Fatigue damage accumulation
 
-% The following values indicate;
-%   > 0     = zero Al fatigue crack growth     & non-zero disbond growth
-%   > inf   = non-zero AL fatigue crack growth & zero disbond growth
-%   > NaN   = zero Al fatigue crack growth     & zero disbond growth
-%  Note: the last implies infinite fatigue life...
+% Cycle increment (=inf when dbdN <= 0)
+dN_rw           = inf(size(dbdN));
+dN_rw(dbdN>0)   = dlb./dbdN(dbdN>0);
+dN              = floor(dN_rw);
+
+% Minor Rule
 Minor = dN./N_f;
 
+% The following scenario's and corresponding values in 'Minor' indicate;
+%   1) value = Max stress > S-N threshold   &&   db/dN > 0
+%   2) 0     = Max stress < S-N threshold   &&   db/dN > 0
+%   3) inf   = Max stress > S-N threshold   &&   db/dN < 0
+%   4) NaN   = Max stress < S-N treshold    &&   db/dN < 0
+%  Note: the fourth implies infinite fatigue life...
+
 % Restore 0 values for the cracked elements
-for i = 2:size(N_f,1)
-   N_f(i,1:i-1)     = 0;
-   Minor(i,1:i-1)   = 0;
-end
+N_f(tril(ones(size(N_f)),-1)==1) = 0;
+Minor(tril(ones(size(Minor)),-1)==1) = 0;
 
 % Accumulated total damage
 Minor_csm = cumsum(Minor,1);
 
-% Check for zero Al fatigue CGR and/or zero disbond growth
-
+% Check for scenario (3) and (4) and act accordingly
+for i = 1:size(Minor_csm,1)
+    if isinf(Minor_csm(i,i))
+        % Scenario: 
+        %   3) inf   = Max stress > S-N threshold   &&   db/dN < 0
+        
+        % Remove the following rows as the crack will not grow any further
+        dN      = dN(1:i);
+        N_f     = N_f(1:i,:);
+        Minor   = Minor(1:i,:);
+        % Remaining load cycles until Al fatigue intiation
+        cycles = (1-Minor_csm(i-1,i))*N_f(i,i);
+        if cycles > 0
+            % Current element Minor value < 1 (not initiated)
+            dN(i)           = cycles;
+            Minor(i,i:end)  = cycles./N_f(i,i:end);
+            Minor_csm       = cumsum(Minor,1);
+        else
+            % Current element Minor value > 1 (already initiated)
+            dN(i)           = 0;
+            Minor(i,i:end)  = 0;
+            Minor_csm       = cumsum(Minor,1);
+        end
+        
+        % Terminate the for loop
+        break
+        
+    elseif isnan(Minor_csm(i,i))
+        % Scenario:
+        %   4) NaN   = Max stress < S-N treshold    &&   db/dN < 0
+        
+        % Set to 2 to mark infinite fatigue life
+        dN(i:end)       = 2;
+        N_f(i:i:end)    = inf;
+        Minor(i:i:end)  = 2;
+        
+        % Terminate the for loop
+        break
+    end
+    
+end
 
 end
