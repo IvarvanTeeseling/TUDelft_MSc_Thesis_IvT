@@ -18,9 +18,9 @@ switch method
         S_max = Sa_nom+Sm_nom;
         % Equivalent maximum stress
         S_eq = S_max.*(1-R_nom).^0.56;
-        % Pa to ksi
+        % ksi to Pa
         S_eq = S_eq*1.45038e-7;
-        % N_f = 0 if the maximum stress is below the threshold
+        % Cycles untill inititation (= 0 if below the threshold)
         a               = S_eq-15.8;
         N_f(a>0)        = 10.^(11.1-3.97*log10(a(a>0)));
         
@@ -31,9 +31,9 @@ switch method
         S_max = Sa_nom+Sm_nom;
         % Equivalent maximum stress
         S_eq = S_max.*(1-R_nom_ad1).^0.52;
-        % Pa to ksi
+        % ksi to Pa
         S_eq = S_eq*1.45038e-7;
-        % Nr. cycles untill fatigue initiation
+        % Cycles untill inititation (= 0 if below the threshold)
         N_f = 10.^(20.83-9.09*log10(S_eq));
 end
 
@@ -50,36 +50,42 @@ Minor = dN./N_f;
 % The following scenario's and corresponding values in 'Minor' indicate;
 %   1) value = Max stress > S-N threshold   &&   db/dN > 0
 %   2) 0     = Max stress < S-N threshold   &&   db/dN > 0
-%   3) inf   = Max stress > S-N threshold   &&   db/dN < 0
-%   4) NaN   = Max stress < S-N treshold    &&   db/dN < 0
+%   3) inf   = Max stress > S-N threshold   &&   db/dN = 0
+%   4) NaN   = Max stress < S-N treshold    &&   db/dN = 0
 %  Note: the fourth implies infinite fatigue life...
 
 % Restore 0 values for the cracked elements
 N_f(tril(ones(size(N_f)),-1)==1) = 0;
 Minor(tril(ones(size(Minor)),-1)==1) = 0;
 
-% Accumulated total damage
+% Accumulated total fatigue damage
 Minor_csm = cumsum(Minor,1);
 
 % Check for scenario (3) and (4) and act accordingly
 for i = 1:size(Minor_csm,1)
     if isinf(Minor_csm(i,i))
         % Scenario: 
-        %   3) inf   = Max stress > S-N threshold   &&   db/dN < 0
+        %   3) inf   = Max stress > S-N threshold   &&   db/dN = 0
         
         % Remove the following rows as the crack will not grow any further
         dN      = dN(1:i);
         N_f     = N_f(1:i,:);
         Minor   = Minor(1:i,:);
-        % Remaining load cycles until Al fatigue intiation
-        cycles = (1-Minor_csm(i-1,i))*N_f(i,i);
+
+        % Remaining cycles until fatigue intiation
+        if i == 1
+            cycles = N_f(i,i);
+        else
+            cycles = (1-Minor_csm(i-1,i))*N_f(i,i);
+        end
+        
         if cycles > 0
-            % Current element Minor value < 1 (not initiated)
+            % Fatigue has not yet initiated
             dN(i)           = cycles;
             Minor(i,i:end)  = cycles./N_f(i,i:end);
             Minor_csm       = cumsum(Minor,1);
         else
-            % Current element Minor value > 1 (already initiated)
+            % Fatigue has already initiated (no remaining cycles left)
             dN(i)           = 0;
             Minor(i,i:end)  = 0;
             Minor_csm       = cumsum(Minor,1);
@@ -90,7 +96,7 @@ for i = 1:size(Minor_csm,1)
         
     elseif isnan(Minor_csm(i,i))
         % Scenario:
-        %   4) NaN   = Max stress < S-N treshold    &&   db/dN < 0
+        %   4) NaN   = Max stress < S-N treshold    &&   db/dN = 0
         
         % Set to 2 to mark infinite fatigue life
         dN(i:end)       = 2;

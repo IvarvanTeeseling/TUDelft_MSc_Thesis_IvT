@@ -198,7 +198,7 @@ switch ConfigSelect
         L_1 = 0.05+0.145;
         L_2 = 0.145;
         d   = 0.05;
-        b_0  = 0;
+        b_0 = 0;
     case 'WSLS R. Hanx'
         % Dimensions of the WSLS from R. Hanx thesis
         L_1 = 0.400-0.030;
@@ -209,24 +209,24 @@ switch ConfigSelect
         % Run_00_Trials CLS configuration
         L_1 = 0.07+0.145;
         L_2 = 0.145;
-        d   = 0.05;
-        b_0  = 0;
+        d   = 0.048;
+        b_0 = 0.00;
     case 'GR_Verification'
         % Data from Modeling of Adhesively Bonded Joints, page 43
         L_1 = 0.01+0.05;
         L_2 = 0.01;
-        d   = 0.05;
-        b_0  = 0;
+        d   = 0.018;
+        b_0 = 0;
     case 'Adh Load Verification'
         L_1 = 0.04+0.01;
         L_2 = 0.01;
         d   = 0.05;
-        b_0  = 0;
+        b_0 = 0;
     case 'Johnson 1986'
         L_1 = 0.305;
         L_2 = 0.254;
         d   = 0.0254;
-        b_0 = 0.101;
+        b_0 = 0.0;
     case 'D. Burger PhD Validation'
         % Data from the PhD by Daniel Burger, Chapter 6
         L_1 = 0.300-0.025;
@@ -240,23 +240,23 @@ StressState = {'Plane Stress' 'Plane Strain'};
 StressState = StressState{2}
 
 % Applied load
-LCSelect = {'BOPACS K. Hoidus' 'WSLS R. Hanx' 'Johnson 1986' 'D. Burger PhD Validation'};
-LCSelect = LCSelect{2}
+LCSelect = {'BOPACS K. Hoidus' 'WSLS R. Hanx' 'Johnson 1986' 'Run_01_Trials'};
+LCSelect = LCSelect{4}
 switch LCSelect
     case 'BOPACS K. Hoidus'
-        % Load case from: 200% from the load in Bachelorthesis K. Hoidus P49
-        S_max   = 1*23.16*1e3/(d*t); % [N/m^2]
+        % Load case from: 100% from the load in Bachelorthesis K. Hoidus P49
+        P_max   = 60*1e3/d;
         R_load  = 0.1;
     case 'WSLS R. Hanx'
         % Load case from R. Hanx
-        S_max   = 1.5*230e3/t;
+        P_max   = 1.5*230e3;   
         R_load  = 0.1;
     case 'Johnson 1986'
-        S_max   = 4.378e5/t;
+        P_max   = 4.378e5;
         R_load  = 0.1;
-    case 'D. Burger PhD Validation'
+    case 'Run_01_Trials'
         % Data from the PhD by Daniel Burger, Chapter 6
-        S_max   = 14e3/(d*t);
+        P_max   = 24.445e3/d;
         R_load  = 0.1;
 end
 
@@ -272,25 +272,18 @@ q_max = ceil(q*9/10);
 DiscretizeMethod = {'LeftBoundary' 'Central' 'RightBoundary'};
 DiscretizeMethod = DiscretizeMethod{2}
 
-%% Module 1: Geometry and Load Paramaters
-
-% Initital geometry
-l_A0 = L_1-(L_2-b_0);
-l_B0 = L_2-b_0;
-
-% Angle neutral axis w.r.t. adherent neutral axis
-alpha = (t+t_a)./(2*(l_A0+l_B0));
+%% Module 1: Load Paramaters
 
 % Applied force
-P_max   = S_max*t;              % [N/m]
-P_min   = P_max*R_load;         % [N/m]
-P       = [P_min P_max];        % [N/m]
-P       = permute(P,[3,1,2]);   % size [1x1xn] where n = # loads
+P_min    = P_max*R_load;    % [N/m]
+P(1,1,1) = P_min;           % [N/m]
+P(1,1,2) = P_max;           % [N/m]
 
 % Applied stress
-S_min   = S_max*R_load;         % [N/m^2]
-S       = [S_min S_max];        % [N/m^2]
-S       = permute(S,[3,1,2]);   % size [1x1xn] where n = # loads
+S_max    = P_max*t;         % [N/m^2]
+S_min    = S_max*R_load;    % [N/m^2]
+S(1,1,1) = S_min;           % [N/m^2]
+S(1,1,2) = S_max;           % [N/m^2]
 
 %% Module 2: FML Laminate Properties
 
@@ -329,11 +322,18 @@ EIxx1       = E*t^3/12;
 EIxx0       = 2*E*(t^3/12+t*(t/2+t_a/2)^2)+E_a*t_a^3/12;
 EIxx0_ta0   = E*(2*t)^3/12;                                 % Assuming t_a~0
 
+%% Module 3: Discretize adherends
+
+% Initital geometry
+l_A0 = L_1-(L_2-b_0);
+l_B0 = L_2-b_0;
+
+% Angle neutral axis w.r.t. adherent neutral axis
+alpha = (t+t_a)./(2*(l_A0+l_B0));
+
 % Element length
 dla = l_A0/q;
 dlb = l_B0/q;
-
-%% Module 3: Discretize adherends
 
 switch DiscretizeMethod
     case 'LeftBoundary'
@@ -409,7 +409,7 @@ end
 % Enforce DAF effect
 q1      = round(1/3*q_max);
 q2      = round(2/3*q_max);
-daf_I   = 0;
+daf_I   = 0.8;
 daf_II  = 0;
 x_daf   = 0:1:(q2-q1);
 
@@ -424,10 +424,12 @@ serr.MR              = serr.GII./serr.G;
 %% Module 8: Adhesive DGR and numerical integration
 
 % Crack Growth Rate (model from D. Burger (2005), FM94 adhesive)
-[dbdN, dG1_eq] = Crack_Growth_Rate(serr.GI, serr.GII, serr.MR, c_0, m_0, c_100, 10^(-10));
+[dbdN, dG1_eq] = Crack_Growth_Rate(serr.GI, serr.GII, serr.MR, c_0, m_0, c_100, 10^(-8));
 
 if dbdN(1) == 0
-    error('Error. No adhesive disbond growth exists..!');
+    
+    disp('Warning! No adhesive disbond growth exists..!');
+    
 end
 
 %% Module 9: Fatigue Accumulation
@@ -461,6 +463,7 @@ if strcmp(AdMat, 'FML')
     setappdata(0,'G_inf', serr_inf.G);
     setappdata(0,'x',x00*1000);
     setappdata(0,'Sy',Al.y1);
+    setappdata(0,'Su',Al.Su);
     
     run('GUI_FinalPlots');
     run('GUI_FinalPlots2');

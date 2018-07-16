@@ -227,22 +227,24 @@ x = getappdata(0, 'x');
 Sa_nom_ad1 = getappdata(0, 'Sa_nom_ad1');
 Sm_nom_ad1 = getappdata(0, 'Sm_nom_ad1');
 Sy         = getappdata(0, 'Sy');
+Su         = getappdata(0, 'Su');
 St_nom_ad1 = Sa_nom_ad1 + Sm_nom_ad1;
 
 hold on
 handles.PlotSm_ad1   = plot(x(1,:), Sm_nom_ad1(end,:),'r');
 handles.PlotStot_ad1 = plot(x(1,:), St_nom_ad1(end,:),'b');
 handles.PlotSy       = plot(x(1,:), Sy*ones(1,size(x,2)),'g');
+handles.PlotSu       = plot(x(1,:), Su*ones(1,size(x,2)),'c');
 hold off
 title('Load Cycle Stress')
-legend('Mean S_{m,nom}', 'Total Stress S_{tot}','Yield Stress \sigma_{y}')
+legend('Mean S_{m,nom}', 'Total Stress S_{tot}','Yield Stress \sigma_{y}','Failure Stress \sigma_{u}')
 ylabel('Stress [MPa]')
 xlabel('Distance x [mm]')
 xlim([x(1,1) x(1,end)]);
-if max(St_nom_ad1(:)) >= Sy
+if max(St_nom_ad1(:)) >= Su
     ylim([min(Sm_nom_ad1(:)) max(St_nom_ad1(:))*1.1]);
 else
-    ylim([min(Sm_nom_ad1(:)) Sy*1.1]);
+    ylim([min(Sm_nom_ad1(:)) Su*1.1]);
 end
 grid on
 
