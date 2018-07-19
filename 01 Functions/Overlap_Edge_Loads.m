@@ -1,15 +1,17 @@
-function [M, Q, V] = Overlap_Edge_Loads(x1, x0, P, D_1, D_0, l_A, l_B, t, t_a, BC)
+function [M_k, M_k0, Q_k, Q_k0, V_k, M, Q, w] = Overlap_Edge_Loads(xA, xB, P, D_A, D_B, l_A, l_B, t, t_a, BC)
 %% Description
 % Syntax
-%   >Overlap_Edge_loads(x1, x0, P, D_1, D_0, l_A, l_Btmp, t, ta)
+%   >Overlap_Edge_loads(x1, x0, P, D_A, D_B, l_A, l_Btmp, t, ta)
 % Input
-%   >x1     : [nxn] matrix with coordinates of the free adherent where n
-%               is the # of elements in the overlap region
-%   >x0     : [nxn] matrix with coordinates of the overlap where n is the #
-%               of elements in the overlap region
+%   >xA     : [MxN] matrix with coordinates of the free adherent where N
+%               is the # of elements in the overlap region and N the # of
+%               cracked elements
+%   >xB     : [MxN] matrix with coordinates of the overlap where N is the #
+%               of elements in the overlap region and M the # of cracked
+%               elements
 %   >P      : Applied load per unit width along the CLS neutral axis [N/m]
-%   >D_1    : Free adherent bending stiffness
-%   >D_0    : Overlap bending stiffness (lumped together)
+%   >D_A    : Free adherent bending stiffness
+%   >D_B    : Overlap bending stiffness (lumped together)
 %   >l_A    : Free adherent length [m]
 %   >l_B    : Overlap length [m]
 %   >t      : Adherent thickness (symmteric adherents) [m]
@@ -18,14 +20,21 @@ function [M, Q, V] = Overlap_Edge_Loads(x1, x0, P, D_1, D_0, l_A, l_B, t, t_a, B
 %               1. RR = Roller-Roller (incl. pinned)
 %               2. CC = Clamped-Clamped
 % Output
-%   >M      : Overlap edge moment per unit width [N/m^2]
-%               1. M.A for the moment at x1 = l_A
-%               2. M.B for the moment at x0 = 0
-%   >Q      : Overlap edge load per unit width w.r.t deformed axis [N/m]
-%               1. Q.A for the shear force at x1 = l_A
-%               2. Q.B for the shear force at x0 = 0
-%   >V      : Overlap edge shear load based on equilibirum consideration 
-%               of the overlap region
+%   >M_k    : Moment at x1 = l_A per unit width [N]
+%   >M_k0   : Moment at x0 = 0 per unit width [N]
+%   >Q_k    : Shear force at x1 = l_A per unit width [N/m]
+%   >Q_k0   : Shear force at x0 = 0 per unit width [N/m]
+%   >V_k    : Shear force at x1 = l_A per unit width [N/m] on equilibirum 
+%               consideration of the overlap region
+%   >M      : Structurer with bending moment distribution
+%               1) .A for the free adherent
+%               2) .B for the overlap region
+%   >Q      : Structurer with shear force distribution
+%               1) .A for the free adherent
+%               2) .B for the overlap region
+%   >w      : Structurer with vertical desiplacement distribution
+%               1) .A for the free adherent
+%               2) .B for the overlap region
 %               
 % Description
 % >Based on Goland and Reissner (1944) solution where both adherents in
@@ -40,59 +49,50 @@ function [M, Q, V] = Overlap_Edge_Loads(x1, x0, P, D_1, D_0, l_A, l_B, t, t_a, B
 %% Code
 
 % Solution eigenvalues
-lambda_1 = sqrt(P/D_1);
-lambda_0 = sqrt(P/D_0);
+lambda_A = sqrt(P/D_A);
+lambda_B = sqrt(P/D_B);
 
 % Angle neutral axis w.r.t. adherent neutral axis
-alpha = (t + t_a)./(2*(l_A(1)+l_B(1)));
+alpha = (t+t_a)./(2*(l_A(1)+l_B(1)));
 
 switch BC
     case 'RR'
-        
         % Reaction forces according to force equilibrium
         R_A = 0;
         M_A = 0;
         
         % Integration constants
-        A_1 =   0;
-        B_1 =   -(sqrt(D_1)*(cosh(lambda_0.*l_B)*t...
-            +cosh(lambda_0.*l_B)*t_a+2*alpha*(l_A+l_B)-t-t_a))...
-            ./(2*(sqrt(D_1)*cosh(lambda_0.*l_B).*sinh(lambda_1.*l_A)...
-            +sqrt(D_0).*cosh(lambda_1.*l_A).*sinh(lambda_0.*l_B)));
-        A_0 =   (-2*sqrt(D_0/D_1)*B_1.*cosh(lambda_1.*l_A).*sinh(lambda_0.*l_B)...
-            -2*alpha*(l_A+l_B)+t+t_a)./(2*cosh(lambda_0.*l_B));
-        B_0 =   sqrt(D_0/D_1)*B_1.*cosh(lambda_1.*l_A);
+        A_1 = 0;
+        B_1 = -(sqrt(D_A)*(cosh(lambda_B.*l_B)*t...
+            +cosh(lambda_B.*l_B)*t_a+2*alpha*(l_A+l_B)-t-t_a))...
+            ./(2*(sqrt(D_A)*cosh(lambda_B.*l_B).*sinh(lambda_A.*l_A)...
+            +sqrt(D_B).*cosh(lambda_A.*l_A).*sinh(lambda_B.*l_B)));
+        A_0 = (-2*sqrt(D_B/D_A)*B_1.*cosh(lambda_A.*l_A).*sinh(lambda_B.*l_B)...
+            -2*alpha*(l_A+l_B)+t+t_a)./(2*cosh(lambda_B.*l_B));
+        B_0 = sqrt(D_B/D_A)*B_1.*cosh(lambda_A.*l_A);
         
-        % Overlap edge loads
-        M_k = P.*(-A_1.*cosh(lambda_1.*l_A)-B_1.*sinh(lambda_1.*l_A));
-        Q_k = P.*(-A_1.*lambda_1.*sinh(lambda_1.*l_A)-B_1.*lambda_1.*sinh(lambda_1.*l_A));
-        M_0 = P.*(-A_0.*cosh(lambda_0.*0)-B_0.*sinh(lambda_0.*0));
-        Q_0 = P.*(-A_0.*lambda_0.*sinh(lambda_0.*0)-B_0.*lambda_0.*sinh(lambda_0.*0));
+        % Overlap edge loads and lumped overlap loads
+        M_k     = P.*(-A_1.*cosh(lambda_A.*l_A)-B_1.*sinh(lambda_A.*l_A));
+        Q_k     = P.*(-A_1.*lambda_A.*sinh(lambda_A.*l_A)-B_1.*lambda_A.*cosh(lambda_A.*l_A));
+        M_k0    = P.*(-A_0.*cosh(lambda_B.*0)-B_0.*sinh(lambda_B.*0));
+        Q_k0    = P.*(-A_0.*lambda_B.*sinh(lambda_B.*0)-B_0.*lambda_B.*cosh(lambda_B.*0));
         
         % Q_k according to force equilibrium of the undeformed body
         V_k =  (P*(t+t_a)-2*M_k)./(2*l_B);
         
-        % Set output
-        M.A = M_k;
-        M.B = M_0;
-        Q.A = Q_k;
-        Q.B = Q_0;
-        V   = V_k;
-        
         % Vertical displacement
-        %w1 = A_1.*cosh(lambda_1.*x1)+B_1.*sinh(lambda_1.*x1)+(alpha+R_A./P).*x1+M_A./P;
-        %w0 = A_0.*cosh(lambda_0.*x0)+B_0.*sinh(lambda_0.*x0)+alpha.*(l_A+x0)-(t+ta)/2+(l_A+x0).*R_A./P+M_A./P;
+        w.A = A_1.*cosh(lambda_A.*xA)+B_1.*sinh(lambda_A.*xA)+(alpha+R_A./P).*xA+M_A./P;
+        w.B = A_0.*cosh(lambda_B.*xB)+B_0.*sinh(lambda_B.*xB)+alpha.*(l_A+xB)-(t+t_a)/2+(l_A+xB).*R_A./P+M_A./P;
         
-        % Bending moment in the free adherent >> CORRECT
-        %M1 = P.*(-A_1.*cosh(lambda_1.*x1)-B_1.*sinh(lambda_1.*x1));
-        %Q1 = P.*(-A_1.*lambda_1.*cosh(lambda_1.*x1)-B_1.*lambda_1.*sinh(lambda_1.*x1));
+        % Free adherent >> CORRECT
+        M.A = P.*(-A_1.*cosh(lambda_A.*xA)-B_1.*sinh(lambda_A.*xA));
+        Q.A = P.*(-A_1.*lambda_A.*sinh(lambda_A.*xA)-B_1.*lambda_A.*cosh(lambda_A.*xA));
         
-        % Bending moment in the overlap region >> CORRECT
-        %M0 = P.*(-A_0.*cosh(lambda_0.*x0)-B_0.*sinh(lambda_0.*x0));
-        %Q0 = P.*(-A_0.*lambda_0.*sinh(lambda_0.*x0)-B_0.*lambda_0.*sinh(lambda_0.*x0));   
+        % Overlap region >> CORRECT
+        M.B = P.*(-A_0.*cosh(lambda_B.*xB)-B_0.*sinh(lambda_B.*xB));
+        Q.B = P.*(-A_0.*lambda_B.*sinh(lambda_B.*xB)-B_0.*lambda_B.*cosh(lambda_B.*xB));
         
     case 'CC'
-        
         %Pre-allocate memory
         R_A = zeros(size(l_B,1),1,size(P,2));
         R_B = zeros(size(l_B,1),1,size(P,2));
@@ -108,8 +108,8 @@ switch BC
             
             % Applied load
             Ptmp        = P(1,1,i);
-            lambda_1tmp = lambda_1(1,1,i);
-            lambda_0tmp = lambda_0(1,1,i);
+            lambda_Atmp = lambda_A(1,1,i);
+            lambda_Btmp = lambda_B(1,1,i);
             
             for j = 1:size(l_B,1)
                 % Free adherent (l_A) and overlap (l_B) length
@@ -117,7 +117,7 @@ switch BC
                 l_Atmp = l_A(j);
                 
                 % Integration constants
-                a_mat = [0 0 0.1e1 / Ptmp 0 1 0 0 0; 0.1e1 / Ptmp 0 0 0 0 lambda_1tmp 0 0; 0 0.1e1 / Ptmp * (l_Btmp + l_Atmp) 0.1e1 / Ptmp 0 0 0 cosh(lambda_0tmp * l_Btmp) sinh(lambda_0tmp * l_Btmp); 0 0.1e1 / Ptmp 0 0 0 0 lambda_0tmp * sinh(lambda_0tmp * l_Btmp) lambda_0tmp * cosh(lambda_0tmp * l_Btmp); 0.1e1 / Ptmp * l_Atmp -0.1e1 / Ptmp * l_Atmp 0 0 cosh(lambda_1tmp * l_Atmp) sinh(lambda_1tmp * l_Atmp) -1 0; 0.1e1 / Ptmp -0.1e1 / Ptmp 0 0 lambda_1tmp * sinh(lambda_1tmp * l_Atmp) lambda_1tmp * cosh(lambda_1tmp * l_Atmp) 0 -lambda_0tmp; 1 -1 0 0 0 0 0 0; -l_Btmp - l_Atmp 0 -1 1 0 0 0 0];
+                a_mat = [0 0 0.1e1 / Ptmp 0 1 0 0 0; 0.1e1 / Ptmp 0 0 0 0 lambda_Atmp 0 0; 0 0.1e1 / Ptmp * (l_Btmp + l_Atmp) 0.1e1 / Ptmp 0 0 0 cosh(lambda_Btmp * l_Btmp) sinh(lambda_Btmp * l_Btmp); 0 0.1e1 / Ptmp 0 0 0 0 lambda_Btmp * sinh(lambda_Btmp * l_Btmp) lambda_Btmp * cosh(lambda_Btmp * l_Btmp); 0.1e1 / Ptmp * l_Atmp -0.1e1 / Ptmp * l_Atmp 0 0 cosh(lambda_Atmp * l_Atmp) sinh(lambda_Atmp * l_Atmp) -1 0; 0.1e1 / Ptmp -0.1e1 / Ptmp 0 0 lambda_Atmp * sinh(lambda_Atmp * l_Atmp) lambda_Atmp * cosh(lambda_Atmp * l_Atmp) 0 -lambda_Btmp; 1 -1 0 0 0 0 0 0; -l_Btmp - l_Atmp 0 -1 1 0 0 0 0];
                 d_mat = [0 -alpha -(l_Btmp + l_Atmp) * alpha + t / 0.2e1 + t_a / 0.2e1 -alpha -t / 0.2e1 - t_a / 0.2e1 0 0 0]';
                 b_mat = a_mat\d_mat;
  
@@ -134,32 +134,25 @@ switch BC
         end
         
         % Overlap edge loads and lumped overlap loads
-        M_k = P.*(-A_1.*cosh(lambda_1.*l_A)-B_1.*sinh(lambda_1.*l_A));
-        Q_k = P.*(-A_1.*lambda_1.*sinh(lambda_1.*l_A)-B_1.*lambda_1.*sinh(lambda_1.*l_A));
-        M_0 = P.*(-A_0.*cosh(lambda_0.*0)-B_0.*sinh(lambda_0.*0));
-        Q_0 = P.*(-A_0.*lambda_0.*sinh(lambda_0.*0)-B_0.*lambda_0.*sinh(lambda_0.*0));
+        M_k     = P.*(-A_1.*cosh(lambda_A.*l_A)-B_1.*sinh(lambda_A.*l_A));
+        Q_k     = P.*(-A_1.*lambda_A.*sinh(lambda_A.*l_A)-B_1.*lambda_A.*cosh(lambda_A.*l_A));
+        M_k0    = P.*(-A_0.*cosh(lambda_B.*0)-B_0.*sinh(lambda_B.*0));
+        Q_k0    = P.*(-A_0.*lambda_B.*sinh(lambda_B.*0)-B_0.*lambda_B.*cosh(lambda_B.*0));
         
         % Q_k according to force equilibrium of the undeformed body
         V_k =  (P*(t+t_a)-2*M_k)./(2*l_B);
         
-        % Set output
-        M.A = M_k;
-        M.B = M_0;
-        Q.A = Q_k;
-        Q.B = Q_0;
-        V   = V_k;
-        
         % Vertical displacement
-        %w1 = A_1.*cosh(lambda_1.*x1)+B_1.*sinh(lambda_1.*x1)+(alpha+R_A./P).*x1+M_A./P;
-        %w0 = A_0.*cosh(lambda_0.*x0)+B_0.*sinh(lambda_0.*x0)+alpha.*(l_A+x0)-(t+ta)/2+(l_A+x0).*R_A./P+M_A./P;
+        w.A = A_1.*cosh(lambda_A.*xA)+B_1.*sinh(lambda_A.*xA)+(alpha+R_A./P).*xA+M_A./P;
+        w.B = A_0.*cosh(lambda_B.*xB)+B_0.*sinh(lambda_B.*xB)+alpha.*(l_A+xB)-(t+t_a)/2+(l_A+xB).*R_A./P+M_A./P;
         
-        % Bending moment in the free adherent >> CORRECT
-        %M1 = P.*(-A_1.*cosh(lambda_1.*x1)-B_1.*sinh(lambda_1.*x1));
-        %Q1 = P.*(-A_1.*lambda_1.*cosh(lambda_1.*x1)-B_1.*lambda_1.*sinh(lambda_1.*x1));
+        % Free adherent >> CORRECT
+        M.A = P.*(-A_1.*cosh(lambda_A.*xA)-B_1.*sinh(lambda_A.*xA));
+        Q.A = P.*(-A_1.*lambda_A.*sinh(lambda_A.*xA)-B_1.*lambda_A.*cosh(lambda_A.*xA));
         
-        % Bending moment in the overlap region >> CORRECT
-        %M0 = P.*(-A_0.*cosh(lambda_0.*x0)-B_0.*sinh(lambda_0.*x0));
-        %Q0 = P.*(-A_0.*lambda_0.*sinh(lambda_0.*x0)-B_0.*lambda_0.*sinh(lambda_0.*x0));      
+        % Overlap region >> CORRECT
+        M.B = P.*(-A_0.*cosh(lambda_B.*xB)-B_0.*sinh(lambda_B.*xB));
+        Q.B = P.*(-A_0.*lambda_B.*sinh(lambda_B.*xB)-B_0.*lambda_B.*cosh(lambda_B.*xB));
 end
 
 end

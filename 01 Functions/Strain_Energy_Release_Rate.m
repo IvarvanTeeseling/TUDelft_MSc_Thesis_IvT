@@ -91,8 +91,8 @@ end
 switch method
     case 'Verreman1992'
         % Source:
-        %   > On the fracture parameters in a clamped cracked lap shear 
-        %   adhesive joint (1992) by Edde, F. and Verreman, Y. 
+        %   > "On the fracture parameters in a clamped cracked lap shear 
+        %   adhesive joint" (1992) by Edde, F. and Verreman, Y. 
         %
         % Description:
         %   > SERR Mode I and Mode II using the adhesive stress formulation
@@ -104,8 +104,8 @@ switch method
     case 'Lai1996'
         %   > NOT FINISHED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         % Source:
-        %   > The cracked lap shear specimen revisited - A closed 
-        %   form solution (1996) by Lai et al.
+        %   > "The cracked lap shear specimen revisited - A closed 
+        %   form solution" (1996) by Lai et al.
         %
         % Description:
         %   > Suo and Hutchinson to find (1) the total SERR and (2) perform
@@ -124,8 +124,8 @@ switch method
 
     case 'Fern1und1991'
         % Source:
-        %   > Failure load prediction of structural adhesive joints -
-        %   Part 1 (1991) by Fernlund, G. Spelt, J.K.
+        %   > "Failure load prediction of structural adhesive joints -
+        %   Part 1" (1991) by Fernlund, G. Spelt, J.K.
         %
         % Description:
         %   > SERR for the J-integral and mode partitioning only valid for
@@ -139,8 +139,8 @@ switch method
         mr      = GII./G;
     case 'Brussat1977'
         % Source:
-        %   > Stress Analysis of the Cracked Lap Shear Specimen: An ASTM
-        %   round Robin (1986) by W. Johson
+        %   > "Stress Analysis of the Cracked Lap Shear Specimen: An ASTM
+        %   round Robin" (1986) by W. Johson
         %
         % Description:
         %   > SERR for an infinitely long joint (independend of crack
@@ -153,7 +153,7 @@ switch method
     case 'Fern1und1994'
         %   > NOT FINISHED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         % Source:
-        %   > Fracture load predictions for adhesive joints (1994) by
+        %   > "Fracture load predictions for adhesive joints" (1994) by
         %   Fernlund et al.
         %
         % Description:

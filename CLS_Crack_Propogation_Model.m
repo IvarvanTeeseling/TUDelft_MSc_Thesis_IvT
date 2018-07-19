@@ -8,7 +8,7 @@ clc;
 
 % Adherent material
 AdherentSelect = {'GR Verification' 'Adh Load Verification' 'D. Burger PhD Validation' 'GLARE 4/3 0.4' 'GLARE 4/3 0.3' 'CLT Verification' 'Johnson 1986'};
-AdherentSelect = AdherentSelect{4}
+AdherentSelect = AdherentSelect{7}
 switch AdherentSelect
     case 'GR Verification'
         % Data from Modeling of Adhesively Bonded Joints, page 43
@@ -143,16 +143,13 @@ end
 
 % Adhesive material
 AdhesiveSelect = {'FM94 K.06' 'GR_Verification' 'Adh Load Verification' 'Johnson 1986'};
-AdhesiveSelect = AdhesiveSelect{1}
+AdhesiveSelect = AdhesiveSelect{4}
 switch AdhesiveSelect
     case 'FM94 K.06'
         t_a      = 0.133*10^(-3);                   % Standard thickness
-        E_a      = 1e9;                             % Data fom: Laminate Stiffness Calculator version rca.xls
         G_a      = 394e6;                           % Data fom: Laminate Stiffness Calculator version rca.xls
         v_a      = 0.27;                            % Data fom: Laminate Stiffness Calculator version rca.xls
-        
-        E_a      = G_a*(2*(1+v_a));
-        
+        E_a      = G_a*(2*(1+v_a));                 % Assumed
         c_0      = 5.27*10^(-17);                   % D. Burger PhD report, page 71
         m_0      = 3.78;                            % D. Burger PhD report, page 71
         c_100    = 10^(-17.68379446640316);         % D. Burger PhD report, page 72, figure 5.11, data read using: https://apps.automeris.io/wpd/
@@ -191,7 +188,7 @@ end
 
 % CLS configuration
 ConfigSelect = {'BOPACS' 'WSLS R. Hanx' 'Run_00_Trials' 'GR_Verification' 'Adh Load Verification' 'Johnson 1986' 'D. Burger PhD Validation'};
-ConfigSelect = ConfigSelect{3}
+ConfigSelect = ConfigSelect{6}
 switch ConfigSelect
     case 'BOPACS'
         % Dimensions from Bachelorthesis K. Hoidus, page 35
@@ -210,7 +207,7 @@ switch ConfigSelect
         L_1 = 0.07+0.145;
         L_2 = 0.145;
         d   = 0.048;
-        b_0 = 0.00;
+        b_0 = 0.0254;
     case 'GR_Verification'
         % Data from Modeling of Adhesively Bonded Joints, page 43
         L_1 = 0.01+0.05;
@@ -240,8 +237,8 @@ StressState = {'Plane Stress' 'Plane Strain'};
 StressState = StressState{2}
 
 % Applied load
-LCSelect = {'BOPACS K. Hoidus' 'WSLS R. Hanx' 'Johnson 1986' 'Run_01_Trials'};
-LCSelect = LCSelect{4}
+LCSelect = {'BOPACS K. Hoidus' 'WSLS R. Hanx' 'Johnson 1986' 'Run_00_Trials'};
+LCSelect = LCSelect{3}
 switch LCSelect
     case 'BOPACS K. Hoidus'
         % Load case from: 100% from the load in Bachelorthesis K. Hoidus P49
@@ -249,18 +246,17 @@ switch LCSelect
         R_load  = 0.1;
     case 'WSLS R. Hanx'
         % Load case from R. Hanx
-        P_max   = 1.5*230e3;   
+        P_max   = 1.5*230e3;
         R_load  = 0.1;
     case 'Johnson 1986'
         P_max   = 4.378e5;
         R_load  = 0.1;
-    case 'Run_01_Trials'
-        % Data from the PhD by Daniel Burger, Chapter 6
+    case 'Run_00_Trials'
         P_max   = 24.445e3/d;
         R_load  = 0.1;
 end
 
-% Support boundary conditions (only for overlap loads)
+% Support boundary conditions
 BC = {'RR' 'CC'};
 BC = BC{2}
 
@@ -288,10 +284,10 @@ S(1,1,2) = S_max;           % [N/m^2]
 %% Module 2: FML Laminate Properties
 
 if strcmp(AdMat, 'FML')
-    
     % ABD matrix and equivalent laminate properties
     [ABD, FML] = ABD_Matrix_Generator(Al, GF, fml, 'mem');
     
+    % Isolate output
     E_x     = FML.Ex;
     E_x_ps  = FML.Ex_ps;
     E_y     = FML.Ey;
@@ -309,18 +305,17 @@ if strcmp(StressState, 'Plane Strain')
     else
         E = E/(1-v^2);
     end
-    
 end
 
 % Membrane stiffness (only for identical adherends)
-AExx1       = E*t;
-AExx0       = E*t*2 + E_a*t_a;
-AExx0_ta0   = E*t*2;                                        % Assuming t_a~0
+AExx_A       = E*t;
+AExx_B       = E*t*2 + E_a*t_a;
+AExx_B_ta0   = E*t*2;                                        % Assuming t_a~0
 
 % Bending stifness (only for identical adherends)
-EIxx1       = E*t^3/12;
-EIxx0       = 2*E*(t^3/12+t*(t/2+t_a/2)^2)+E_a*t_a^3/12;
-EIxx0_ta0   = E*(2*t)^3/12;                                 % Assuming t_a~0
+EIxx_A       = E*t^3/12;
+EIxx_B       = 2*E*(t^3/12+t*(t/2+t_a/2)^2)+E_a*t_a^3/12;
+EIxx_B_ta0   = E*(2*t)^3/12;                                 % Assuming t_a~0
 
 %% Module 3: Discretize adherends
 
@@ -332,79 +327,75 @@ l_B0 = L_2-b_0;
 alpha = (t+t_a)./(2*(l_A0+l_B0));
 
 % Element length
-dla = l_A0/q;
-dlb = l_B0/q;
+dlA = l_A0/q;
+dlB = l_B0/q;
 
 switch DiscretizeMethod
     case 'LeftBoundary'
-        x1 = 0:dla:l_A0-dla;
-        x0 = 0:dlb:l_B0-dlb;
+        xA = 0:dlA:l_A0-dlA;
+        xB = 0:dlB:l_B0-dlB;
     case 'Central'
-        x1 = dla/2:dla:l_A0-dla/2;
-        x0 = dlb/2:dlb:l_B0-dlb/2;
+        xA = dlA/2:dlA:l_A0-dlA/2;
+        xB = dlB/2:dlB:l_B0-dlB/2;
     case 'RightBoundary'
-        x1 = dla:dla:l_A0;
-        x0 = dlb:dlb:l_B0;
+        xA = dlA:dlA:l_A0;
+        xB = dlB:dlB:l_B0;
 end
 
 % x1 matrix where x1 spans l_A (free adherent)
-x1 = x1.*ones(q_max,1);
-x1 = x1-dla*ones(q_max,q).*(0:q_max-1)';
-x1 = x1.*triu(ones(size(x1)));
+xA = xA.*ones(q_max,1);
+xA = xA-dlA*ones(q_max,q).*(0:q_max-1)';
+xA = xA.*triu(ones(size(xA)));
 
 % x0 matrix where x0 spans l_B (overlap region)
-x0 = x0.*ones(q_max,1);
-x0 = x0-dlb*ones(q_max,q).*(0:q_max-1)';
-x0 = x0.*triu(ones(size(x0)));
+xB = xB.*ones(q_max,1);
+xB = xB-dlB*ones(q_max,q).*(0:q_max-1)';
+xB = xB.*triu(ones(size(xB)));
 
 % l_A and l_B for each crack increment
-l_A = l_A0*ones(q_max,1)+dlb*(0:q_max-1)';
-l_B = l_B0*ones(q_max,1)-dlb*(0:q_max-1)';
+l_A = l_A0*ones(q_max,1)+dlB*(0:q_max-1)';
+l_B = l_B0*ones(q_max,1)-dlB*(0:q_max-1)';
 
 %% Module 4: Overlap Edge Loads
 
 % Overlap edge loads (minumum and maximum)
-[M, Q, V] = Overlap_Edge_Loads(x1, x0, P, EIxx1, EIxx0_ta0, l_A, l_B, t, 0, BC);
+[M_k, M_k0, Q_k, Q_k0, V_k, M, Q, w] = Overlap_Edge_Loads(xA, xB, P, EIxx_A, EIxx_B_ta0, l_A, l_B, t, 0, BC);
 
-% Extract solutions
-M_k  = M.A; % Overlap bending moment based on M_1(x1=l_A)
-Q_k  = Q.A; % Overlap shear force based on Q_1(x1=l_A)
-V_k  = V;   % Overlap shear force based on equilibrium
-M_0  = M.B; % Overlap bending moment based on M_0(x0=0)
-Q_0  = Q.B; % Overlap shear force based on Q_0(x0=0)
 
 %% Module 5: Adhesive Stresses and Overlap Adherent Load Distributions
 
 % x0 vector must be adjusted to the x-axis system used in the adhesive
-% stress analysis: -l_B <= x0 <= 0
-x00 = x0-l_B;
-x00 = x00.*triu(ones(size(x00)));
+% stress analysis: -l_B <= xB <= 0
+xBB = xB-l_B;
+xBB = xBB.*triu(ones(size(xBB)));
 
 % Adhesive stresses derrived using the horizontal force component
 F = P*cos(alpha);
 
 % Luo and Tong (2004, 2007) > adhesive thickness inlcuded
-[Shear_a, Peel_a] = Overlap_Adhesive_Stresses(x00, F, M_k, V_k, l_B, E, t, E_a, G_a, t_a);
+[Shear_a, Peel_a] = Overlap_Adhesive_Stresses(xBB, F, M_k, V_k, l_B, E, t, E_a, G_a, t_a);
 
-% Goland and Reissner (1944) > adhesive thickness excluded (ta = 0)
-%[Shear_a2, Peel_a2] = Adhesive_Stresses_GR(x00, P, l_B, E, t, E_a, G_a, t_a, v);
-%[Shear_a3, Peel_a3] = Overlap_Adhesive_Stresses_LT(x0, F, M_k, V_k, l_B, E, G, t, E_a, G_a, t_a, AExx1, EIxx1);
-
-[Loads_ad1, Loads_ad2] = Overlap_Adherent_Load_Distributions(x0, t, t_a, F, V_k, M_k, Shear_a, Peel_a, 'num');
+[Loads_ad1, Loads_ad2] = Overlap_Adherent_Load_Distributions(xB, t, t_a, F, V_k, M_k, Shear_a, Peel_a, 'num');
 
 %% Module 6: AL Facesheet Strain and Stress Cycle
 
 if strcmp(AdMat, 'FML')
+    % Free adherent
+    [~, e_xx_A, ~, ~, ~] = Stress_Strain_Cycle(P, M.A, ABD, AExx_A, EIxx_A);
     
-    [S_xx, e_xx, R_nom, Sm_nom, Sa_nom] = Stress_Strain_Cycle(Loads_ad1.N, Loads_ad1.M, Loads_ad2.N, Loads_ad2.M, ABD, AExx1, EIxx1);
-
+    % Overlap region - Top adherent
+    [S_xx_B1, e_xx_B1, R_nom_B1, Sm_nom_B1, Sa_nom_B1] = Stress_Strain_Cycle(Loads_ad1.N, Loads_ad1.M, ABD, AExx_A, EIxx_A);
+    
+    % Overlap region - Bottom adherent
+    [~, e_xx_B2, ~, ~, ~] = Stress_Strain_Cycle(Loads_ad2.N, Loads_ad2.M, ABD, AExx_A, EIxx_A);
 end
 
 %% Module 7: Strain Energy Release Rate
 
-[serr, mr]          = Strain_Energy_Release_Rate('Fern1und1991', AExx1, EIxx1, P, M_k, M_0);
+% Strain Energy Release Rate (3 methods)
+[serr, mr]          = Strain_Energy_Release_Rate('Fern1und1991', AExx_A, EIxx_A, P, M_k, M_k0);
 [serr2, mr2]        = Strain_Energy_Release_Rate('Verreman1992', t_a, E_a, G_a, max(Peel_a,[],2), max(Shear_a,[],2));
-[serr_inf, mr_inf]  = Strain_Energy_Release_Rate('Brussat1977', t, E, AExx1, EIxx1, EIxx0_ta0, P, M_k, M_0);
+[serr_inf, mr_inf]  = Strain_Energy_Release_Rate('Brussat1977', t, E, AExx_A, EIxx_A, EIxx_B_ta0, P, M_k, M_k0);
 
 % Enforce DAF effect
 q1      = round(1/3*q_max);
@@ -427,44 +418,90 @@ serr.MR              = serr.GII./serr.G;
 [dbdN, dG1_eq] = Crack_Growth_Rate(serr.GI, serr.GII, serr.MR, c_0, m_0, c_100, 10^(-8));
 
 if dbdN(1) == 0
-    
     disp('Warning! No adhesive disbond growth exists..!');
-    
 end
 
 %% Module 9: Fatigue Accumulation
 
 if strcmp(AdMat, 'FML')
-        
-    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom.ad1, Sm_nom.ad1, R_nom.ad1, Al.Su, dbdN, dlb);
-    
+    % Fatigue damage accumulation
+    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom_B1(:,:,1), Sm_nom_B1(:,:,1), R_nom_B1(:,:,1), Al.Su, dbdN, dlB);
 end
 
 %% Module 10: Results Plotting
 
-% Store in application data to allow acces by the GUI
-if strcmp(AdMat, 'FML')
-    setappdata(0,'N1',Loads_ad1.N);
-    setappdata(0,'Q1',Loads_ad1.Q);
-    setappdata(0,'M1',Loads_ad1.M);
-    setappdata(0,'N2',Loads_ad2.N);
-    setappdata(0,'Q2',Loads_ad2.Q);
-    setappdata(0,'M2',Loads_ad2.M);
-    setappdata(0,'Shear_a',Shear_a);
-    setappdata(0,'Peel_a',Peel_a);
-    setappdata(0,'N',cumsum(dN));
-    setappdata(0,'dbdN',dbdN(1:length(dN)));
-    setappdata(0,'MinorSum',Minor_csm);
-    setappdata(0,'Sm_nom_ad1',Sm_nom.ad1);
-    setappdata(0,'Sa_nom_ad1',Sa_nom.ad1);
-    setappdata(0,'GI', serr.GI);
-    setappdata(0,'GII', serr.GII);
-    setappdata(0,'dG1_eq', dG1_eq);
-    setappdata(0,'G_inf', serr_inf.G);
-    setappdata(0,'x',x00*1000);
-    setappdata(0,'Sy',Al.y1);
-    setappdata(0,'Su',Al.Su);
+figures = 1;
+
+if figures == 1
+    figure(1)
+    hold on
+    plot([0 0], [-1e-3 6e-3], 'g')
+    plot([xA(1,:)-xA(1,end) xB(1,:)]*1000, [e_xx_A(1,:,2,2) e_xx_B1(1,:,2,2)],'b')
+    plot([xA(1,:)-xA(1,end) xB(1,:)]*1000, [e_xx_A(1,:,2,1) e_xx_B1(1,:,2,1)],'--b')
+    plot(xB(1,:)*1000, e_xx_B2(1,:,2,2),'--r')
+    plot(xB(1,:)*1000, e_xx_B2(1,:,2,1),'r')
+    hold off
+    grid on
+    legend('Adhesive crack','Top FML (top ply)','Top FML (bottom ply)','Bottom FML (top ply)','Bottom FML (bottom ply)')
+    xlabel('x-position [mm]')
+    ylabel('\epsilon_{xx} [-]')
     
-    run('GUI_FinalPlots');
-    run('GUI_FinalPlots2');
+    figure(2)
+    hold on
+    plot(xA(1,:)-xA(1,end), M.A(1,:,2))
+    plot(xB(1,:), M.B(1,:,2))
+    hold off
+    
+    figure(3)
+    hold on
+    plot(xA(1,:)-xA(1,end), w.A(1,:,2))
+    plot(xB(1,:), w.B(1,:,2))
+    hold off
+    
+    figure(4)
+    hold on
+    plot(xA(1,:)-xA(1,end), Q.A(1,:,2))
+    plot(xB(1,:), Q.B(1,:,2))
+    hold off
+    
+    x = -24:0.1:24;
+    x = repmat(x,length(xB(1,:)),1);
+    y = repmat(xB(1,:)',1,size(x,2));
+    z = repmat(e_xx_B2(1,:,2,1)',1,size(x,2));
+    
+    figure(3)
+    contourf(x,y,z, linspace(min(z(:)), max(z(:)), 15))
+    colorbar
+    caxis([min(z(:)) max(z(:))])
+end
+
+gui = 0;
+
+if gui == 1
+    % Store in application data to allow acces by the GUI
+    if strcmp(AdMat, 'FML')
+        setappdata(0,'N1',Loads_ad1.N);
+        setappdata(0,'Q1',Loads_ad1.Q);
+        setappdata(0,'M1',Loads_ad1.M);
+        setappdata(0,'N2',Loads_ad2.N);
+        setappdata(0,'Q2',Loads_ad2.Q);
+        setappdata(0,'M2',Loads_ad2.M);
+        setappdata(0,'Shear_a',Shear_a);
+        setappdata(0,'Peel_a',Peel_a);
+        setappdata(0,'N',cumsum(dN));
+        setappdata(0,'dbdN',dbdN(1:length(dN)));
+        setappdata(0,'MinorSum',Minor_csm);
+        setappdata(0,'Sm_nom_ad1',Sm_nom_B1(:,:,1));
+        setappdata(0,'Sa_nom_ad1',Sa_nom_B1(:,:,1));
+        setappdata(0,'GI', serr.GI);
+        setappdata(0,'GII', serr.GII);
+        setappdata(0,'dG1_eq', dG1_eq);
+        setappdata(0,'G_inf', serr_inf.G);
+        setappdata(0,'x',xBB*1000);
+        setappdata(0,'Sy',Al.y1);
+        setappdata(0,'Su',Al.Su);
+        
+        run('GUI_FinalPlots');
+        run('GUI_FinalPlots2');
+    end
 end
