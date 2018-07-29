@@ -21,8 +21,8 @@ switch method
         % ksi to Pa
         S_eq = S_eq*1.45038e-7;
         % Cycles untill inititation (= 0 if below the threshold)
-        a               = S_eq-15.8;
-        N_f(a>0)        = 10.^(11.1-3.97*log10(a(a>0)));
+        a           = S_eq-15.8;
+        N_f(a>0)    = 10.^(11.1-3.97*log10(a(a>0)));
         
     case 'Military Handbook - Rod)'
         % Source:

@@ -22,7 +22,7 @@ function varargout = Figure_To_Crack_Length(varargin)
 
 % Edit the above text to modify the response to help Figure_To_Crack_Length
 
-% Last Modified by GUIDE v2.5 23-Jul-2018 17:35:55
+% Last Modified by GUIDE v2.5 27-Jul-2018 12:55:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -116,6 +116,9 @@ Ruler = getappdata(0, 'Ruler');
 Files = getappdata(0, 'Files');
 FileKey = getappdata(0, 'CurrentFileKey');
 SF = getappdata(0, 'SF');
+FJ = str2num(get(handles.etFigureJump, 'string'));
+NpI = str2num(get(handles.etCyclesPerImage, 'string'));
+NfI = str2num(get(handles.etFirstImageCycles, 'string'));
 
 for i = 1:length(Ruler.hnd) 
     % Get the ruler handle
@@ -143,6 +146,7 @@ for i = 1:length(Ruler.hnd)
             Results(1,7) = pos(2,2);
             Results(1,8) = dist;
             Results(1,9) = SF.val;
+            Results(1,10) = (FileKey-1)*NpI+NfI;
             
             % Store the results
             setappdata(0, 'Results', Results);
@@ -163,7 +167,8 @@ for i = 1:length(Ruler.hnd)
                 pos(2,1) ...
                 pos(2,2) ...
                 dist ...
-                SF.val];
+                SF.val ...
+                (FileKey-1)*NpI+NfI];
             
             % Overwrite existing file measurements
             if any(Results(:,2)==FileKey)
@@ -183,16 +188,16 @@ end
 set(handles.tbResults, 'Data', Results);
 
 % Only if multiple cells, not last figure and Auto next is toggled on
-if iscell(Files.name) && FileKey < length(Files.name) && get(handles.rbAutoNext, 'value') == 1
+if iscell(Files.name) && FileKey+FJ <= length(Files.name) && get(handles.rbAutoNext, 'value') == 1
     % New figure whilst keeping the rulers and zoom settings
-    set(Files.ImFig, 'CData', Files.read{FileKey+1})
+    set(Files.ImFig, 'CData', Files.read{FileKey+FJ})
     
     % Update File Key
-    setappdata(0, 'CurrentFileKey', FileKey+1);
+    setappdata(0, 'CurrentFileKey', FileKey+FJ);
     
     % Update the GUI file overview
-    set(handles.lbFileOverview, 'value', FileKey+1);
-    set(handles.stCurrentFileKey, 'string', ['Curent file key: ' num2str(FileKey+1)]);
+    set(handles.lbFileOverview, 'value', FileKey+FJ);
+    set(handles.stCurrentFileKey, 'string', ['Curent file key: ' num2str(FileKey+FJ)]);
 end
 
 % --- Executes on button press in pbSelectImages.
@@ -403,7 +408,7 @@ function tbResults_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Set column names
-set(hObject, 'columnname', {'Measure Index', 'File Index', 'Ruler Index', 'x_0', 'x_1', 'y_0', 'y_1', 'L', 'SF'});
+set(hObject, 'columnname', {'Measure Index', 'File Index', 'Ruler Index', 'x_0', 'x_1', 'y_0', 'y_1', 'L', 'SF', 'Load Cycle'});
 
 
 % --- Executes on button press in pbDeleteRuler.
@@ -553,6 +558,74 @@ function etImageJumping_Callback(hObject, eventdata, handles)
 % --- Executes during object creation, after setting all properties.
 function etImageJumping_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to etImageJumping (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function etCyclesPerImage_Callback(hObject, eventdata, handles)
+% hObject    handle to etCyclesPerImage (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of etCyclesPerImage as text
+%        str2double(get(hObject,'String')) returns contents of etCyclesPerImage as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function etCyclesPerImage_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to etCyclesPerImage (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function etFirstImageCycles_Callback(hObject, eventdata, handles)
+% hObject    handle to etFirstImageCycles (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of etFirstImageCycles as text
+%        str2double(get(hObject,'String')) returns contents of etFirstImageCycles as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function etFirstImageCycles_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to etFirstImageCycles (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function etFigureJump_Callback(hObject, eventdata, handles)
+% hObject    handle to etFigureJump (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of etFigureJump as text
+%        str2double(get(hObject,'String')) returns contents of etFigureJump as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function etFigureJump_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to etFigureJump (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 

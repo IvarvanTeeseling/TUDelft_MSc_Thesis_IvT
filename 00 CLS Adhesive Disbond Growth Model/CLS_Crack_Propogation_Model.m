@@ -267,7 +267,7 @@ BC = {'RR' 'CC'};
 BC = BC{2}
 
 % Numerical settings - Number of elements
-q = 4000;
+q = 3000;
 % Numerical settings - Number of cracked elements
 q_max = ceil(q*9/10);
 % Numerical settings - Discretization method
@@ -338,39 +338,46 @@ dlB = l_B0/q;
 
 switch DiscretizeMethod
     case 'LeftBoundary'
-        xA = 0:dlA:l_A0-dlA;
-        xB = 0:dlB:l_B0-dlB;
+        xAtmp = 0:dlA:l_A0-dlA;
+        xBtmp = 0:dlB:l_B0-dlB;
     case 'Central'
-        xA = dlA/2:dlA:l_A0-dlA/2;
-        xB = dlB/2:dlB:l_B0-dlB/2;
+        xAtmp = dlA/2:dlA:l_A0-dlA/2;
+        xBtmp = dlB/2:dlB:l_B0-dlB/2;
     case 'RightBoundary'
-        xA = dlA:dlA:l_A0;
-        xB = dlB:dlB:l_B0;
+        xAtmp = dlA:dlA:l_A0;
+        xBtmp = dlB:dlB:l_B0;
 end
 
-% x1 matrix where x1 spans l_A (free adherent)
-xA = xA.*ones(q_max,1);
-xA = xA-dlA*ones(q_max,q).*(0:q_max-1)';
-xA = xA.*triu(ones(size(xA)));
+% l_A and l_B change with each crack increment
+l_A = l_A0*ones(q_max+1, 1)+dlB*(0:q_max)';
+l_B = l_B0*ones(q_max+1, 1)-dlB*(0:q_max)';
 
-% x0 matrix where x0 spans l_B (overlap region)
-xB = xB.*ones(q_max,1);
-xB = xB-dlB*ones(q_max,q).*(0:q_max-1)';
-xB = xB.*triu(ones(size(xB)));
+% Add cracked l_B elements and add to l_A
+xBtmp       = repmat(xBtmp, q_max+1, 1);
+xAtmp       = repmat(xAtmp, q_max+1, 1);
+ind         = tril(ones(q_max+1, q_max),-1)==0;
+xCrack      = tril(tril(xBtmp(:, 1:q_max), -1)+l_A0, -1);
+xCrack(ind) = NaN;
+xA          = [xAtmp xCrack];
 
-% l_A and l_B for each crack increment
-l_A = l_A0*ones(q_max,1)+dlB*(0:q_max-1)';
-l_B = l_B0*ones(q_max,1)-dlB*(0:q_max-1)';
+% xCracked    = tril(tril(xB(:, 1:q_max), -1)+l_A0, -1);
+% xContinued  = triu(repmat(diag([xA(:,end) xCracked]), 1, q_max));
+% xA          = [xA xCracked+xContinued];
+
+% Remove crack l_B elements from l_B
+xB = xBtmp-repmat(dlB, q_max+1, q).*(0:q_max)';
+xB(triu(ones(size(xB)))==0) = NaN;
+
+%xB = triu(xBtmp);
 
 %% Module 4: Overlap Edge Loads
 
 % Overlap edge loads (minumum and maximum)
 [M_k, M_k0, Q_k, Q_k0, V_k, M, Q, w] = Overlap_Edge_Loads(xA, xB, P, EIxx_A, EIxx_B_ta0, l_A, l_B, t, 0, BC);
 
-
 %% Module 5: Adhesive Stresses and Overlap Adherent Load Distributions
 
-% x0 vector must be adjusted to the x-axis system used in the adhesive
+% xB vector must be adjusted to the x-axis system used in the adhesive
 % stress analysis: -l_B <= xB <= 0
 xBB = xB-l_B;
 xBB = xBB.*triu(ones(size(xBB)));
@@ -387,13 +394,13 @@ F = P*cos(alpha);
 
 if strcmp(AdMat, 'FML')
     % Free adherent
-    [~, e_xx_A, ~, ~, ~] = Stress_Strain_Cycle(P, M.A, ABD, AExx_A, EIxx_A);
+    [S_xx_A, e_xx_A, R_nom_A, Sm_nom_A, Sa_nom_A] = Stress_Strain_Cycle(P, M.A, ABD, AExx_A, EIxx_A);
     
     % Overlap region - Top adherent
     [S_xx_B1, e_xx_B1, R_nom_B1, Sm_nom_B1, Sa_nom_B1] = Stress_Strain_Cycle(Loads_ad1.N, Loads_ad1.M, ABD, AExx_A, EIxx_A);
     
     % Overlap region - Bottom adherent
-    [~, e_xx_B2, ~, ~, ~] = Stress_Strain_Cycle(Loads_ad2.N, Loads_ad2.M, ABD, AExx_A, EIxx_A);
+    [S_xx_B2, e_xx_B2, R_nom_B2, Sm_nom_B2, Sa_nom_B2] = Stress_Strain_Cycle(Loads_ad2.N, Loads_ad2.M, ABD, AExx_A, EIxx_A);
 end
 
 %% Module 7: Strain Energy Release Rate
@@ -431,7 +438,7 @@ end
 
 if strcmp(AdMat, 'FML')
     % Fatigue damage accumulation
-    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom_B1(:,:,1), Sm_nom_B1(:,:,1), R_nom_B1(:,:,1), Al.Su, dbdN, dlB);
+    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom_B1(:,:), Sm_nom_B1(:,:), R_nom_B1(:,:), Al.Su, dbdN, dlB);
 end
 
 %% Module 10: Results Plotting
@@ -442,8 +449,8 @@ if figures == 1
     figure(1)
     hold on
     plot([0 0], [-1e-3 6e-3], 'g')
-    plot([xA(1,:)-xA(1,end) xB(1,:)]*1000, [e_xx_A(1,:,2,2) e_xx_B1(1,:,2,2)],'b')
-    plot([xA(1,:)-xA(1,end) xB(1,:)]*1000, [e_xx_A(1,:,2,1) e_xx_B1(1,:,2,1)],'--b')
+    plot([xA(1,:)-l_A(1) xB(1,:)]*1000, [e_xx_A(1,:,2,2) e_xx_B1(1,:,2,2)],'b')
+    plot([xA(1,:)-l_A(1) xB(1,:)]*1000, [e_xx_A(1,:,2,1) e_xx_B1(1,:,2,1)],'--b')
     plot(xB(1,:)*1000, e_xx_B2(1,:,2,2),'--r')
     plot(xB(1,:)*1000, e_xx_B2(1,:,2,1),'r')
     hold off
@@ -454,14 +461,16 @@ if figures == 1
     
     figure(2)
     hold on
-    plot(xA(1,:)-xA(1,end), M.A(1,:,2))
-    plot(xB(1,:), M.B(1,:,2))
+    plot(xA(1000,:)-l_A(1000), M.A(1000,:,2))
+    plot(xB(1000,:), M.B(1000,:,2))
     hold off
     
     figure(3)
     hold on
-    plot(xA(1,:)-xA(1,end), w.A(1,:,2))
-    plot(xB(1,:), w.B(1,:,2))
+    plot(xA(2500,:), w.A(2500,:,2),'r')
+    plot(xB(2500,:)+l_A(2500), w.B(2500,:,2),'b')
+    plot(xA(1,:), w.A(1,:,2),'--r')
+    plot(xB(1,:)+l_A(1), w.B(1,:,2),'--b')
     hold off
     
     figure(4)
@@ -475,13 +484,13 @@ if figures == 1
     y = repmat(xB(1,:)',1,size(x,2));
     z = repmat(e_xx_B2(1,:,2,1)',1,size(x,2));
     
-    figure(3)
+    figure(5)
     contourf(x,y,z, linspace(min(z(:)), max(z(:)), 15))
     colorbar
     caxis([min(z(:)) max(z(:))])
 end
 
-gui = 1;
+gui = 0;
 
 if gui == 1
     % Store in application data to allow acces by the GUI
@@ -497,8 +506,12 @@ if gui == 1
         setappdata(0,'N',cumsum(dN));
         setappdata(0,'dbdN',dbdN(1:length(dN)));
         setappdata(0,'MinorSum',Minor_csm);
-        setappdata(0,'Sm_nom_ad1',Sm_nom_B1(:,:,1));
-        setappdata(0,'Sa_nom_ad1',Sa_nom_B1(:,:,1));
+        setappdata(0,'Sm_nom_B1',Sm_nom_B1(:,:,1));
+        setappdata(0,'Sa_nom_B1',Sa_nom_B1(:,:,1));
+        setappdata(0,'Sm_nom_B2',Sm_nom_B2(:,:,1));
+        setappdata(0,'Sa_nom_B2',Sa_nom_B2(:,:,1));
+        setappdata(0,'Sm_nom_A',Sm_nom_A(:,:,1));
+        setappdata(0,'Sa_nom_A',Sa_nom_A(:,:,1));
         setappdata(0,'GI', serr.GI);
         setappdata(0,'GII', serr.GII);
         setappdata(0,'dG1_eq', dG1_eq);
