@@ -267,7 +267,7 @@ BC = {'RR' 'CC'};
 BC = BC{2}
 
 % Numerical settings - Number of elements
-q = 30;
+q = 1500;
 % Numerical settings - Number of cracked elements
 q_max = ceil(q*9/10);
 % Numerical settings - Discretization method
@@ -359,11 +359,11 @@ xAB = [repmat(xAtmp, q_max+1, 1) repmat(xBtmp, q_max+1, 1)+l_A0];
 % Isolate xA and exclude cracked B region elements by setting element index
 % to 0; (xA, yA)-Reference Frame
 xA = tril(xAB(:, 1:q+q_max), q-1);
-xA(tril(ones(size(xA))==0)) = NaN;
+xA(tril(ones(size(xA)), q-1)==0) = NaN;
 
 % Isolate xB and include cracked A region elements; (xB, yB)-Reference Frame
 xB = triu(xAB(:, q+1:end)-l_A);
-xB(tril(ones(size(xB))==0)) = NaN;
+xB(triu(ones(size(xB)))==0) = NaN;
 
 %% Module 4: Overlap Edge Loads
 
@@ -375,7 +375,7 @@ xB(tril(ones(size(xB))==0)) = NaN;
 % xB vector must be adjusted to the x-axis system used in the adhesive
 % stress analysis: -l_B <= xB <= 0
 xBB = triu(xB-l_B);
-xBB(tril(ones(size(xBB))==0)) = NaN;
+xBB(triu(ones(size(xBB)))==0) = NaN;
 
 % Adhesive stresses derrived using the horizontal force component
 F = P*cos(alpha);
@@ -436,37 +436,22 @@ if strcmp(AdMat, 'FML')
     % First we have to merge the stress matrices of region A and B of the
     % upper adherent so that we get one stress matrix spanning all elements
     Sa_nom_A0 = Sa_nom_A;
+    Sm_nom_A0 = Sm_nom_A;
     Sa_nom_A0(isnan(Sa_nom_A0)) = 0;
+    Sm_nom_A0(isnan(Sm_nom_A0)) = 0;
     
     Sa_nom_BT0 = Sa_nom_BT;
+    Sm_nom_BT0 = Sm_nom_BT;
     Sa_nom_BT0(isnan(Sa_nom_BT0)) = 0;
+    Sm_nom_BT0(isnan(Sm_nom_BT0)) = 0;
     
-    a = Sa_nom_A0(:,q+1:end,:)+Sa_nom_BT0(:,1:q_max,:);
+    Sa_nom_ACB = [Sa_nom_A(:,1:q,:) Sa_nom_A0(:,q+1:end,:)+Sa_nom_BT0(:,1:q_max,:) Sa_nom_BT(:,q_max+1:end,:)];
+    Sm_nom_ACB = [Sm_nom_A(:,1:q,:) Sm_nom_A0(:,q+1:end,:)+Sm_nom_BT0(:,1:q_max,:) Sm_nom_BT(:,q_max+1:end,:)];
     
-    Sa_nom_AC = [Sa_nom_A(:,1:q) tril(Sa_nom_A(:,q+1:end))+triu(Sa_nom_BT(:,1:q_max)) Sa_nom_A(:,1:q)];
-    
-    %   Step 1: Isolate the cracked B region elements that were added to
-    %   region A and replace al NaN with zero's
-    Sa_nom_A_AC                     = Sa_nom_A(:,q+1:end,:);
-    Sm_nom_A_AC                     = Sm_nom_A(:,q+1:end,:);
-    
-    %   Step 2: Isolate all cracked B region elements from the B region
-    %   (marked by a 0 element value)
-    Sa_nom_BT_CBT   = Sa_nom_BT(:,1:q_max,:);
-    Sm_nom_BT_CBT   = Sm_nom_BT(:,1:q_max,:);
-    
-    %   Step 3: Combine both isolations to create matrix 'Sa_nom_C' which
-    %   holds the stress values for the cracked elements when both part of
-    %   region B (pre-cracking) and region A (post-cracking)
-    Sa_nom_C = Sa_nom_A_AC+Sa_nom_BT_CBT;
-    Sm_nom_C = Sm_nom_A_AC+Sm_nom_BT_CBT;
-    
-    %   Step 4: Merge the original A, B and shared C matrices together
-    Sa_nom_ACB   = [Sa_nom_A(:,1:q,:) Sa_nom_C Sa_nom_BT(:,q_max+1:end,:)];
-    Sm_nom_ACB   = [Sm_nom_A(:,1:q,:) Sm_nom_C Sm_nom_BT(:,q_max+1:end,:)];
+    dbdN(:) = 0;
     
     % Fatigue damage accumulation
-    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom_ACB(:,:), Sm_nom_ACB(:,:), Al.Su, dbdN, dlB);
+    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom_ACB(:,:,:), Sm_nom_ACB(:,:,:), Al.Su, dbdN, dlB);
 end
 
 %% Module 10: Results Plotting
@@ -474,13 +459,17 @@ end
 figures = 1;
 
 if figures == 1
+    
+    n1 = 1;
+    n2 = 1200;
+    
     figure(1)
     hold on
     plot([0 0], [-1e-3 6e-3], 'g')
-    plot([xA(1,:)-l_A(1) xB(1,:)]*1000, [e_xx_A(1,:,2,2) e_xx_BT(1,:,2,2)],'b')
-    plot([xA(1,:)-l_A(1) xB(1,:)]*1000, [e_xx_A(1,:,2,1) e_xx_BT(1,:,2,1)],'--b')
-    plot(xB(1,:)*1000, e_xx_BL(1,:,2,2),'--r')
-    plot(xB(1,:)*1000, e_xx_BL(1,:,2,1),'r')
+    plot([xA(n1,:)-l_A(n1) xB(n1,:)]*1000, [e_xx_A(n1,:,2,2) e_xx_BT(n1,:,2,2)],'b')
+    plot([xA(n1,:)-l_A(n1) xB(n1,:)]*1000, [e_xx_A(n1,:,2,1) e_xx_BT(n1,:,2,1)],'--b')
+    plot(xB(n1,:)*1000, e_xx_BL(n1,:,2,2),'--r')
+    plot(xB(n1,:)*1000, e_xx_BL(n1,:,2,1),'r')
     hold off
     grid on
     legend('Adhesive crack','Top FML (top ply)','Top FML (bottom ply)','Bottom FML (top ply)','Bottom FML (bottom ply)')
@@ -489,28 +478,28 @@ if figures == 1
     
     figure(2)
     hold on
-    plot(xA(1000,:)-l_A(1000), M.A(1000,:,2))
-    plot(xB(1000,:), M.B(1000,:,2))
+    plot(xA(n1,:)-l_A(n1), M.A(n1,:,2))
+    plot(xB(n1,:), M.B(n1,:,2))
     hold off
     
     figure(3)
     hold on
-    plot(xA(1000,:), w.A(1000,:,2),'r')
-    plot(xB(1000,:)+l_A(1000), w.B(1000,:,2),'b')
-    plot(xA(1,:), w.A(1,:,2),'--r')
-    plot(xB(1,:)+l_A(1), w.B(1,:,2),'--b')
+    plot(xA(n1,:), w.A(n1,:,2),'r')
+    plot(xB(n1,:)+l_A(n1), w.B(n1,:,2),'b')
+    plot(xA(n2,:), w.A(n2,:,2),'--r')
+    plot(xB(n2,:)+l_A(n2), w.B(n2,:,2),'--b')
     hold off
     
     figure(4)
     hold on
-    plot(xA(1,:)-xA(1,end), Q.A(1,:,2))
-    plot(xB(1,:), Q.B(1,:,2))
+    plot(xA(n2,:)-xA(n2,end), Q.A(n2,:,2))
+    plot(xB(n2,:), Q.B(n2,:,2))
     hold off
     
     x = -24:0.1:24;
-    x = repmat(x,length(xB(1,:)),1);
-    y = repmat(xB(1,:)',1,size(x,2));
-    z = repmat(e_xx_BL(1,:,2,1)',1,size(x,2));
+    x = repmat(x,length(xB(n2,:)),1);
+    y = repmat(xB(n2,:)',1,size(x,2));
+    z = repmat(e_xx_BL(n2,:,2,1)',1,size(x,2));
     
     figure(5)
     contourf(x,y,z, linspace(min(z(:)), max(z(:)), 15))

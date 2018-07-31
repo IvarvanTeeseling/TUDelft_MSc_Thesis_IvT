@@ -34,22 +34,28 @@ dx = x(1,end) - x(1,end-1);
 switch method
     case 'num'
         % Upper adherent - Axial force
-        N_1     = F_k.*triu(ones(size(Shr_a(:,:,1))))-cumsum(Shr_a.*dx,2);
+        N_1     = F_k-cumsum(Shr_a.*dx,2,'omitnan');
+        N_1(isnan(Shr_a)) = NaN;
         
         % Upper adherent - Shear force
-        Q_1     = Q_k.*triu(ones(size(Pl_a(:,:,1))))-cumsum(Pl_a.*dx,2);
+        Q_1     = Q_k-cumsum(Pl_a.*dx,2,'omitnan');
+        Q_1(isnan(Pl_a)) = NaN;
         
         % Upper adherent - Bending moment
-        M_1     = M_k.*triu(ones(size(Shr_a(:,:,1))))+cumsum(Q_1*dx,2)-(t+t_a)/2*cumsum(Shr_a.*dx,2);
+        M_1     = M_k+cumsum(Q_1*dx,2,'omitnan')-(t+t_a)/2*cumsum(Shr_a.*dx,2,'omitnan');
+        M_1(isnan(Shr_a)) = NaN;
         
         % Lower adherent - Axial force
-        N_2     = cumsum(Shr_a.*dx,2);
+        N_2     = cumsum(Shr_a.*dx,2,'omitnan');
+        N_2(isnan(Shr_a)) = NaN;
         
         % Lower adherent - Shear force
-        Q_2     = cumsum(Pl_a.*dx,2);
+        Q_2     = cumsum(Pl_a.*dx,2,'omitnan');
+        Q_2(isnan(Pl_a)) = NaN;
         
         % Lower adherent - Bending moment
-        M_2     = cumsum(Q_2*dx,2)-(t+t_a)/2*cumsum(Shr_a.*dx,2);
+        M_2     = cumsum(Q_2*dx,2,'omitnan')-(t+t_a)/2*cumsum(Shr_a.*dx,2,'omitnan');
+        M_1(isnan(Shr_a)) = NaN;
     case 'Ana'
         % Upper adherent - Axial force
         Bnd_l   = (F_k*t+6*M_k).*sinh(beta_t*-l_B)./(8*t*sinh(beta_t*l_B))+3*(F_k*t-2*M_k)./(8*t*l_B).*-l_B;

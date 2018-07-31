@@ -1,7 +1,7 @@
 function [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation(method, Sa_nom, Sm_nom, Su, dbdN, dlb)
 
 % Load-ratio
-R_nom = (Sm_nom+Sa_nom)./(Sm_nom-Sa_nom);
+R_nom = (Sm_nom-Sa_nom)./(Sm_nom+Sa_nom);
 
 % Pre-allocate memory
 N_f = inf(size(Sa_nom));
@@ -59,8 +59,8 @@ Minor = dN./N_f;
 %  Note: the fourth implies infinite fatigue life...
 
 % Restore 0 values for the cracked elements
-N_f(tril(ones(size(N_f)),-1)==1) = 0;
-Minor(tril(ones(size(Minor)),-1)==1) = 0;
+% N_f(tril(ones(size(N_f)),-1)==1) = 0;
+% Minor(tril(ones(size(Minor)),-1)==1) = 0;
 
 % Accumulated total fatigue damage
 Minor_csm = cumsum(Minor,1);
