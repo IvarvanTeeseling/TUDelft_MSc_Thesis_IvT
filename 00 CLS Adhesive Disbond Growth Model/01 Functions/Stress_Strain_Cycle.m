@@ -28,8 +28,8 @@ for i = [1 length(z_mid)]
     % Note: e_xx and s_xx are a [NxMxPxQ] matrix where:
     %   N = the number of cracked elements
     %   M = the number of elements
-    %   P = 2: the min and max load
-    %   Q = 2: the two outer plies
+    %   P = 2: the min (=1) and max (=2) (load
+    %   Q = 2: the bottom (=1) and top (=2) ply
     
     % Total strain
     e_xx(:,:,:,cnt) = e_x0-z_mid(i)*k_x;

@@ -267,7 +267,7 @@ BC = {'RR' 'CC'};
 BC = BC{2}
 
 % Numerical settings - Number of elements
-q = 3000;
+q = 30;
 % Numerical settings - Number of cracked elements
 q_max = ceil(q*9/10);
 % Numerical settings - Discretization method
@@ -352,23 +352,18 @@ end
 l_A = l_A0*ones(q_max+1, 1)+dlB*(0:q_max)';
 l_B = l_B0*ones(q_max+1, 1)-dlB*(0:q_max)';
 
-% Add cracked l_B elements and add to l_A
-xBtmp       = repmat(xBtmp, q_max+1, 1);
-xAtmp       = repmat(xAtmp, q_max+1, 1);
-ind         = tril(ones(q_max+1, q_max),-1)==0;
-xCrack      = tril(tril(xBtmp(:, 1:q_max), -1)+l_A0, -1);
-xCrack(ind) = NaN;
-xA          = [xAtmp xCrack];
+% Matrix where each row spans the entire CLS joint in the (xB yB)-Reference
+% Frame
+xAB = [repmat(xAtmp, q_max+1, 1) repmat(xBtmp, q_max+1, 1)+l_A0];
 
-% xCracked    = tril(tril(xB(:, 1:q_max), -1)+l_A0, -1);
-% xContinued  = triu(repmat(diag([xA(:,end) xCracked]), 1, q_max));
-% xA          = [xA xCracked+xContinued];
+% Isolate xA and exclude cracked B region elements by setting element index
+% to 0; (xA, yA)-Reference Frame
+xA = tril(xAB(:, 1:q+q_max), q-1);
+xA(tril(ones(size(xA))==0)) = NaN;
 
-% Remove crack l_B elements from l_B
-xB = xBtmp-repmat(dlB, q_max+1, q).*(0:q_max)';
-xB(triu(ones(size(xB)))==0) = NaN;
-
-%xB = triu(xBtmp);
+% Isolate xB and include cracked A region elements; (xB, yB)-Reference Frame
+xB = triu(xAB(:, q+1:end)-l_A);
+xB(tril(ones(size(xB))==0)) = NaN;
 
 %% Module 4: Overlap Edge Loads
 
@@ -379,8 +374,8 @@ xB(triu(ones(size(xB)))==0) = NaN;
 
 % xB vector must be adjusted to the x-axis system used in the adhesive
 % stress analysis: -l_B <= xB <= 0
-xBB = xB-l_B;
-xBB = xBB.*triu(ones(size(xBB)));
+xBB = triu(xB-l_B);
+xBB(tril(ones(size(xBB))==0)) = NaN;
 
 % Adhesive stresses derrived using the horizontal force component
 F = P*cos(alpha);
@@ -388,19 +383,20 @@ F = P*cos(alpha);
 % Luo and Tong (2004, 2007) > adhesive thickness inlcuded
 [Shear_a, Peel_a] = Overlap_Adhesive_Stresses(xBB, F, M_k, V_k, l_B, E, t, E_a, G_a, t_a);
 
-[Loads_ad1, Loads_ad2] = Overlap_Adherent_Load_Distributions(xB, t, t_a, F, V_k, M_k, Shear_a, Peel_a, 'num');
+% Get the N, M and Q distributions in the overlap region
+[OALoad_T, OALoad_L] = Overlap_Adherent_Load_Distributions(xB, t, t_a, F, V_k, M_k, Shear_a, Peel_a, 'num');
 
 %% Module 6: AL Facesheet Strain and Stress Cycle
 
 if strcmp(AdMat, 'FML')
     % Free adherent
-    [S_xx_A, e_xx_A, R_nom_A, Sm_nom_A, Sa_nom_A] = Stress_Strain_Cycle(P, M.A, ABD, AExx_A, EIxx_A);
+    [~, e_xx_A, ~, Sm_nom_A, Sa_nom_A] = Stress_Strain_Cycle(P, M.A, ABD, AExx_A, EIxx_A);
     
     % Overlap region - Top adherent
-    [S_xx_B1, e_xx_B1, R_nom_B1, Sm_nom_B1, Sa_nom_B1] = Stress_Strain_Cycle(Loads_ad1.N, Loads_ad1.M, ABD, AExx_A, EIxx_A);
+    [~, e_xx_BT, ~, Sm_nom_BT, Sa_nom_BT] = Stress_Strain_Cycle(OALoad_T.N, OALoad_T.M, ABD, AExx_A, EIxx_A);
     
-    % Overlap region - Bottom adherent
-    [S_xx_B2, e_xx_B2, R_nom_B2, Sm_nom_B2, Sa_nom_B2] = Stress_Strain_Cycle(Loads_ad2.N, Loads_ad2.M, ABD, AExx_A, EIxx_A);
+    % Overlap region - Lower adherent
+    [~, e_xx_BL, ~, Sm_nom_BL, Sa_nom_BL] = Stress_Strain_Cycle(OALoad_L.N, OALoad_L.M, ABD, AExx_A, EIxx_A);
 end
 
 %% Module 7: Strain Energy Release Rate
@@ -437,8 +433,40 @@ end
 %% Module 9: Fatigue Accumulation
 
 if strcmp(AdMat, 'FML')
+    % First we have to merge the stress matrices of region A and B of the
+    % upper adherent so that we get one stress matrix spanning all elements
+    Sa_nom_A0 = Sa_nom_A;
+    Sa_nom_A0(isnan(Sa_nom_A0)) = 0;
+    
+    Sa_nom_BT0 = Sa_nom_BT;
+    Sa_nom_BT0(isnan(Sa_nom_BT0)) = 0;
+    
+    a = Sa_nom_A0(:,q+1:end,:)+Sa_nom_BT0(:,1:q_max,:);
+    
+    Sa_nom_AC = [Sa_nom_A(:,1:q) tril(Sa_nom_A(:,q+1:end))+triu(Sa_nom_BT(:,1:q_max)) Sa_nom_A(:,1:q)];
+    
+    %   Step 1: Isolate the cracked B region elements that were added to
+    %   region A and replace al NaN with zero's
+    Sa_nom_A_AC                     = Sa_nom_A(:,q+1:end,:);
+    Sm_nom_A_AC                     = Sm_nom_A(:,q+1:end,:);
+    
+    %   Step 2: Isolate all cracked B region elements from the B region
+    %   (marked by a 0 element value)
+    Sa_nom_BT_CBT   = Sa_nom_BT(:,1:q_max,:);
+    Sm_nom_BT_CBT   = Sm_nom_BT(:,1:q_max,:);
+    
+    %   Step 3: Combine both isolations to create matrix 'Sa_nom_C' which
+    %   holds the stress values for the cracked elements when both part of
+    %   region B (pre-cracking) and region A (post-cracking)
+    Sa_nom_C = Sa_nom_A_AC+Sa_nom_BT_CBT;
+    Sm_nom_C = Sm_nom_A_AC+Sm_nom_BT_CBT;
+    
+    %   Step 4: Merge the original A, B and shared C matrices together
+    Sa_nom_ACB   = [Sa_nom_A(:,1:q,:) Sa_nom_C Sa_nom_BT(:,q_max+1:end,:)];
+    Sm_nom_ACB   = [Sm_nom_A(:,1:q,:) Sm_nom_C Sm_nom_BT(:,q_max+1:end,:)];
+    
     % Fatigue damage accumulation
-    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom_B1(:,:), Sm_nom_B1(:,:), R_nom_B1(:,:), Al.Su, dbdN, dlB);
+    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom_ACB(:,:), Sm_nom_ACB(:,:), Al.Su, dbdN, dlB);
 end
 
 %% Module 10: Results Plotting
@@ -449,10 +477,10 @@ if figures == 1
     figure(1)
     hold on
     plot([0 0], [-1e-3 6e-3], 'g')
-    plot([xA(1,:)-l_A(1) xB(1,:)]*1000, [e_xx_A(1,:,2,2) e_xx_B1(1,:,2,2)],'b')
-    plot([xA(1,:)-l_A(1) xB(1,:)]*1000, [e_xx_A(1,:,2,1) e_xx_B1(1,:,2,1)],'--b')
-    plot(xB(1,:)*1000, e_xx_B2(1,:,2,2),'--r')
-    plot(xB(1,:)*1000, e_xx_B2(1,:,2,1),'r')
+    plot([xA(1,:)-l_A(1) xB(1,:)]*1000, [e_xx_A(1,:,2,2) e_xx_BT(1,:,2,2)],'b')
+    plot([xA(1,:)-l_A(1) xB(1,:)]*1000, [e_xx_A(1,:,2,1) e_xx_BT(1,:,2,1)],'--b')
+    plot(xB(1,:)*1000, e_xx_BL(1,:,2,2),'--r')
+    plot(xB(1,:)*1000, e_xx_BL(1,:,2,1),'r')
     hold off
     grid on
     legend('Adhesive crack','Top FML (top ply)','Top FML (bottom ply)','Bottom FML (top ply)','Bottom FML (bottom ply)')
@@ -467,8 +495,8 @@ if figures == 1
     
     figure(3)
     hold on
-    plot(xA(2500,:), w.A(2500,:,2),'r')
-    plot(xB(2500,:)+l_A(2500), w.B(2500,:,2),'b')
+    plot(xA(1000,:), w.A(1000,:,2),'r')
+    plot(xB(1000,:)+l_A(1000), w.B(1000,:,2),'b')
     plot(xA(1,:), w.A(1,:,2),'--r')
     plot(xB(1,:)+l_A(1), w.B(1,:,2),'--b')
     hold off
@@ -482,7 +510,7 @@ if figures == 1
     x = -24:0.1:24;
     x = repmat(x,length(xB(1,:)),1);
     y = repmat(xB(1,:)',1,size(x,2));
-    z = repmat(e_xx_B2(1,:,2,1)',1,size(x,2));
+    z = repmat(e_xx_BL(1,:,2,1)',1,size(x,2));
     
     figure(5)
     contourf(x,y,z, linspace(min(z(:)), max(z(:)), 15))
@@ -490,26 +518,26 @@ if figures == 1
     caxis([min(z(:)) max(z(:))])
 end
 
-gui = 0;
+gui = 1;
 
 if gui == 1
     % Store in application data to allow acces by the GUI
     if strcmp(AdMat, 'FML')
-        setappdata(0,'N1',Loads_ad1.N);
-        setappdata(0,'Q1',Loads_ad1.Q);
-        setappdata(0,'M1',Loads_ad1.M);
-        setappdata(0,'N2',Loads_ad2.N);
-        setappdata(0,'Q2',Loads_ad2.Q);
-        setappdata(0,'M2',Loads_ad2.M);
+        setappdata(0,'N1',OALoad_T.N);
+        setappdata(0,'Q1',OALoad_T.Q);
+        setappdata(0,'M1',OALoad_T.M);
+        setappdata(0,'N2',OALoad_L.N);
+        setappdata(0,'Q2',OALoad_L.Q);
+        setappdata(0,'M2',OALoad_L.M);
         setappdata(0,'Shear_a',Shear_a);
         setappdata(0,'Peel_a',Peel_a);
         setappdata(0,'N',cumsum(dN));
         setappdata(0,'dbdN',dbdN(1:length(dN)));
         setappdata(0,'MinorSum',Minor_csm);
-        setappdata(0,'Sm_nom_B1',Sm_nom_B1(:,:,1));
-        setappdata(0,'Sa_nom_B1',Sa_nom_B1(:,:,1));
-        setappdata(0,'Sm_nom_B2',Sm_nom_B2(:,:,1));
-        setappdata(0,'Sa_nom_B2',Sa_nom_B2(:,:,1));
+        setappdata(0,'Sm_nom_BT',Sm_nom_BT(:,:,1));
+        setappdata(0,'Sa_nom_BT',Sa_nom_BT(:,:,1));
+        setappdata(0,'Sm_nom_BL',Sm_nom_BL(:,:,1));
+        setappdata(0,'Sa_nom_BL',Sa_nom_BL(:,:,1));
         setappdata(0,'Sm_nom_A',Sm_nom_A(:,:,1));
         setappdata(0,'Sa_nom_A',Sa_nom_A(:,:,1));
         setappdata(0,'GI', serr.GI);

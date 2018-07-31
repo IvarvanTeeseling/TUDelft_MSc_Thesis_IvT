@@ -1,5 +1,9 @@
-function [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation(method, Sa_nom, Sm_nom, R_nom, Su, dbdN, dlb)
+function [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation(method, Sa_nom, Sm_nom, Su, dbdN, dlb)
 
+% Load-ratio
+R_nom = (Sm_nom+Sa_nom)./(Sm_nom-Sa_nom);
+
+% Pre-allocate memory
 N_f = inf(size(Sa_nom));
 
 switch method
@@ -64,10 +68,10 @@ Minor_csm = cumsum(Minor,1);
 % Check for scenario (3) and (4) and act accordingly
 for i = 1:size(Minor_csm,1)
     if isinf(Minor_csm(i,i))
-        % Scenario: 
-        %   3) inf   = Max stress > S-N threshold   &&   db/dN = 0
+        % Scenario: arrested adhesive crack
+        %   3) inf   : Max stress > S-N threshold   &&   db/dN = 0
         
-        % Remove the following rows as the crack will not grow any further
+        % Remove the subsequent rows as the crack will not grow any further
         dN      = dN(1:i);
         N_f     = N_f(1:i,:);
         Minor   = Minor(1:i,:);
@@ -95,8 +99,9 @@ for i = 1:size(Minor_csm,1)
         break
         
     elseif isnan(Minor_csm(i,i))
-        % Scenario:
-        %   4) NaN   = Max stress < S-N treshold    &&   db/dN = 0
+        % Scenario: arrested adhesive crack and no aluminum fatigue
+        %           intitiation; infinite life
+        %   4) NaN   : Max stress < S-N treshold    &&   db/dN = 0
         
         % Set to 2 to mark infinite fatigue life
         dN(i:end)       = 2;

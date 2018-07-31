@@ -50,12 +50,12 @@ B_s4 = M_k.*(sinh(beta_s*l_B).*cos(beta_s*l_B)-cosh(beta_s*l_B).*sin(beta_s*l_B)
 % Adhesive shear stress
 %   > Source: Modeling of Adhesively Bonded Joints, page 41
 Shr_a = beta_t*(F_k*t+6*M_k).*cosh(beta_t*x)./(8*t*sinh(beta_t*l_B))+3*(F_k*t-2*M_k)./(8*t*l_B);
-Shr_a = Shr_a.*triu(ones(size(Shr_a(:,:,1))));
+%Shr_a = Shr_a.*triu(ones(size(Shr_a(:,:,1))));
 
 % Adhesive peel stress
 %   > Source: Modeling of Adhesively Bonded Joints, page 41
 Pl_a = 2*beta_s^2*(B_s1.*sinh(beta_s*x).*sin(beta_s*x)+B_s4.*cosh(beta_s*x).*cos(beta_s*x))...
     ./(sinh(2*beta_s*l_B)+sin(2*beta_s*l_B));
-Pl_a = Pl_a.*triu(ones(size(Pl_a(:,:,1))));
+%Pl_a = Pl_a.*triu(ones(size(Pl_a(:,:,1))));
 
 end
