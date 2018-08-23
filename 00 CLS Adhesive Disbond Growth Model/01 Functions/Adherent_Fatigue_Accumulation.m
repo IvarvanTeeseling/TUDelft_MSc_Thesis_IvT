@@ -1,4 +1,4 @@
-function [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation(method, Sa_nom, Sm_nom, Su, dbdN, dlb)
+function [Minor, dMinor, dN, N_f] = Adherent_Fatigue_Accumulation(method, Sa_nom, Sm_nom, Su, dbdN, dlb)
 
 % Load-ratio
 R_nom = (Sm_nom-Sa_nom)./(Sm_nom+Sa_nom);
@@ -43,62 +43,58 @@ end
 
 %% Fatigue damage accumulation
 
-% Cycle increment (=inf when dbdN <= 0)
-dN_rw           = inf(size(dbdN));
-dN_rw(dbdN>0)   = dlb./dbdN(dbdN>0);
-dN              = floor(dN_rw);
+% Cycle increment (=inf when dbdN == 0)
+dN_rw   = dlb./dbdN;
+dN      = floor(dN_rw);
 
 % Minor Rule
-Minor = dN./N_f;
+dMinor = dN./N_f;
 
-% The following scenario's and corresponding values in 'Minor' indicate;
+% The following scenario's and corresponding values in 'dMinor' indicate;
 %   1) value = Max stress > S-N threshold   &&   db/dN > 0
 %   2) 0     = Max stress < S-N threshold   &&   db/dN > 0
 %   3) inf   = Max stress > S-N threshold   &&   db/dN = 0
 %   4) NaN   = Max stress < S-N treshold    &&   db/dN = 0
-%  Note: the fourth implies infinite fatigue life...
-
-% Restore 0 values for the cracked elements
-% N_f(tril(ones(size(N_f)),-1)==1) = 0;
-% Minor(tril(ones(size(Minor)),-1)==1) = 0;
+%  Note: the fourth scenario implies infinite fatigue life...
 
 % Accumulated total fatigue damage
-Minor_csm = cumsum(Minor,1);
+Minor = nancumsum(dMinor,1,2);
 
 % Check for scenario (3) and (4) and act accordingly
-for i = 1:size(Minor_csm,1)
-    if isinf(Minor_csm(i,i))
+for i = 1:size(dMinor,1)
+    if any(any(isinf(dMinor(i,:,:))))
         % Scenario: arrested adhesive crack
         %   3) inf   : Max stress > S-N threshold   &&   db/dN = 0
-        
-        % Remove the subsequent rows as the crack will not grow any further
-        dN      = dN(1:i);
-        N_f     = N_f(1:i,:);
-        Minor   = Minor(1:i,:);
 
-        % Remaining cycles until fatigue intiation
         if i == 1
-            cycles = N_f(i,i);
+            % Remaining cycles until fatigue intiation
+            cycles = min(min(N_f(i,:,:)));
+            dN(i)               = cycles;
+            dN(i+1:end)         = 0;
+            dMinor(i,:,:)       = cycles./N_f(i,:,:);
+            dMinor(i+1:end,:,:) = 0;
+            Minor               = nancumsum(dMinor,1,2);
         else
-            cycles = (1-Minor_csm(i-1,i))*N_f(i,i);
+            if any(any(Minor(i-1,:,:)>=1))
+                % Fatigue already has been initiated; no remaining cycles
+                dN(i:end)           = 0;
+                dMinor(i:end,:,:)   = 0;
+                Minor               = nancumsum(dMinor,1,2);
+            else
+                % Remaining cycles until fatigue intiation
+                cycles              = min(min((1-Minor(i-1,:,:)).*N_f(i,:,:)));
+                dN(i)               = cycles;
+                dN(i+1:end)         = 0;        
+                dMinor(i,:,:)       = cycles./N_f(i,:,:);
+                dMinor(i+1:end,:,:) = 0;   
+                Minor               = nancumsum(dMinor,1,2);
+            end
         end
-        
-        if cycles > 0
-            % Fatigue has not yet initiated
-            dN(i)           = cycles;
-            Minor(i,i:end)  = cycles./N_f(i,i:end);
-            Minor_csm       = cumsum(Minor,1);
-        else
-            % Fatigue has already initiated (no remaining cycles left)
-            dN(i)           = 0;
-            Minor(i,i:end)  = 0;
-            Minor_csm       = cumsum(Minor,1);
-        end
-        
+
         % Terminate the for loop
         break
         
-    elseif isnan(Minor_csm(i,i))
+    elseif any(any(isnan(Minor(i,:,:)))) && ~any(any(isinf(Minor(i,:,:))))
         % Scenario: arrested adhesive crack and no aluminum fatigue
         %           intitiation; infinite life
         %   4) NaN   : Max stress < S-N treshold    &&   db/dN = 0
@@ -106,7 +102,7 @@ for i = 1:size(Minor_csm,1)
         % Set to 2 to mark infinite fatigue life
         dN(i:end)       = 2;
         N_f(i:i:end)    = inf;
-        Minor(i:i:end)  = 2;
+        dMinor(i:i:end)  = 2;
         
         % Terminate the for loop
         break

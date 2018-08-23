@@ -16,4 +16,7 @@ dG1_eq(dG1_eq<=dG1_eq_th) = 0;
 % Disbond growth rate using the MR at the maximum load
 dbdN = c100.^MR(:,:,2).*c0.^(1-MR(:,:,2)).*dG1_eq.^m0;
 
+% Negative dbdN is not allowed
+dbdN(dbdN<0) = 0;
+
 end

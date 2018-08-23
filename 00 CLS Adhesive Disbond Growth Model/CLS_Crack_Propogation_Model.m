@@ -6,6 +6,8 @@ clc;
 
 %% Module 0: Input
 
+tic
+
 % Adherent material
 AdherentSelect = {'GR Verification' 'Adh Load Verification' 'D. Burger PhD Validation' 'GLARE 4/3 0.4' 'GLARE 4/3 0.3' 'CLT Verification' 'Johnson 1986'};
 AdherentSelect = AdherentSelect{4}
@@ -57,9 +59,9 @@ switch AdherentSelect
         Al.G    = 27068e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.v12  = 0.33;             % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.t    = 0.4e-3;           % Data fom: Laminate Stiffness Calculator version rca.xls
-        Al.Su   = 469e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
-        Al.y1   = 347e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
-        Al.y2   = 299e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.Su   = 469e6;            % R.C. Alderliesten. Fatigue crack growth propagation and delamination growth in GLARE. PhD thesis, TU Delft, May 2005
+        Al.y1   = 347e6;            % R.C. Alderliesten. Fatigue crack growth propagation and delamination growth in GLARE. PhD thesis, TU Delft, May 2005
+        Al.y2   = 299e6;            % R.C. Alderliesten. Fatigue crack growth propagation and delamination growth in GLARE. PhD thesis, TU Delft, May 2005
         Al.ct1  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.ct2  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
         
@@ -88,9 +90,9 @@ switch AdherentSelect
         Al.G    = 27068e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.v12  = 0.33;             % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.t    = 0.4e-3;           % Data fom: Laminate Stiffness Calculator version rca.xls
-        Al.Su   = 469e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
-        Al.y1   = 347e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
-        Al.y2   = 299e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.Su   = 469e6;            % R.C. Alderliesten. Fatigue crack growth propagation and delamination growth in GLARE. PhD thesis, TU Delft, May 2005
+        Al.y1   = 347e6;            % R.C. Alderliesten. Fatigue crack growth propagation and delamination growth in GLARE. PhD thesis, TU Delft, May 2005
+        Al.y2   = 299e6;            % R.C. Alderliesten. Fatigue crack growth propagation and delamination growth in GLARE. PhD thesis, TU Delft, May 2005
         Al.ct1  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.ct2  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
         
@@ -119,9 +121,9 @@ switch AdherentSelect
         Al.G    = 27068e6;          % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.v12  = 0.33;             % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.t    = 0.4e-3;           % Data fom: Laminate Stiffness Calculator version rca.xls
-        Al.Su   = 469e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
-        Al.y1   = 347e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
-        Al.y2   = 299e6;            % http://asm.matweb.com/search/SpecificMaterial.asp?bassnum=ma2024t4
+        Al.Su   = 469e6;            % R.C. Alderliesten. Fatigue crack growth propagation and delamination growth in GLARE. PhD thesis, TU Delft, May 2005
+        Al.y1   = 347e6;            % R.C. Alderliesten. Fatigue crack growth propagation and delamination growth in GLARE. PhD thesis, TU Delft, May 2005
+        Al.y2   = 299e6;            % R.C. Alderliesten. Fatigue crack growth propagation and delamination growth in GLARE. PhD thesis, TU Delft, May 2005
         Al.ct1  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
         Al.ct2  = 2.32e-5;          % Data fom: Laminate Stiffness Calculator version rca.xls
         
@@ -234,11 +236,11 @@ end
 
 % Plane stress/strain
 StressState = {'Plane Stress' 'Plane Strain'};
-StressState = StressState{2}
+StressState = StressState{1}
 
 % Applied load
-LCSelect = {'BOPACS K. Hoidus' 'WSLS R. Hanx' 'Johnson 1986' 'Run_00_Trials' 'Run_01_CLS_30%' 'Run_01_CLS_30kN'};
-LCSelect = LCSelect{6}
+LCSelect = {'BOPACS K. Hoidus' 'WSLS R. Hanx' 'Johnson 1986' 'Run_00_Trials' 'Run_01_CLS_30%' 'Run_01_CLS_30kN' 'Run_01_CLS_26kN'};
+LCSelect = LCSelect{7}
 switch LCSelect
     case 'BOPACS K. Hoidus'
         % Load case from: 100% from the load in Bachelorthesis K. Hoidus P49
@@ -260,6 +262,9 @@ switch LCSelect
     case 'Run_01_CLS_30kN'
         P_max   = 30e3/d;
         R_load  = 0.1;
+    case 'Run_01_CLS_26kN'
+        P_max   = 26e3/d;
+        R_load  = 0.1;
 end
 
 % Support boundary conditions
@@ -267,7 +272,7 @@ BC = {'RR' 'CC'};
 BC = BC{2}
 
 % Numerical settings - Number of elements
-q = 1500;
+q = 2000;
 % Numerical settings - Number of cracked elements
 q_max = ceil(q*9/10);
 % Numerical settings - Discretization method
@@ -332,38 +337,8 @@ l_B0 = L_2-b_0;
 % Angle neutral axis w.r.t. adherent neutral axis
 alpha = (t+t_a)./(2*(l_A0+l_B0));
 
-% Element length
-dlA = l_A0/q;
-dlB = l_B0/q;
-
-switch DiscretizeMethod
-    case 'LeftBoundary'
-        xAtmp = 0:dlA:l_A0-dlA;
-        xBtmp = 0:dlB:l_B0-dlB;
-    case 'Central'
-        xAtmp = dlA/2:dlA:l_A0-dlA/2;
-        xBtmp = dlB/2:dlB:l_B0-dlB/2;
-    case 'RightBoundary'
-        xAtmp = dlA:dlA:l_A0;
-        xBtmp = dlB:dlB:l_B0;
-end
-
-% l_A and l_B change with each crack increment
-l_A = l_A0*ones(q_max+1, 1)+dlB*(0:q_max)';
-l_B = l_B0*ones(q_max+1, 1)-dlB*(0:q_max)';
-
-% Matrix where each row spans the entire CLS joint in the (xB yB)-Reference
-% Frame
-xAB = [repmat(xAtmp, q_max+1, 1) repmat(xBtmp, q_max+1, 1)+l_A0];
-
-% Isolate xA and exclude cracked B region elements by setting element index
-% to 0; (xA, yA)-Reference Frame
-xA = tril(xAB(:, 1:q+q_max), q-1);
-xA(tril(ones(size(xA)), q-1)==0) = NaN;
-
-% Isolate xB and include cracked A region elements; (xB, yB)-Reference Frame
-xB = triu(xAB(:, q+1:end)-l_A);
-xB(triu(ones(size(xB)))==0) = NaN;
+% Discretize adherents according to the xA, xB and xBB reference frame
+[xA, xAB, xB, xBB, l_A, l_B] = Discretize_Adherents(l_A0, l_B0, q, q_max, NaN, DiscretizeMethod);
 
 %% Module 4: Overlap Edge Loads
 
@@ -371,11 +346,6 @@ xB(triu(ones(size(xB)))==0) = NaN;
 [M_k, M_k0, Q_k, Q_k0, V_k, M, Q, w] = Overlap_Edge_Loads(xA, xB, P, EIxx_A, EIxx_B_ta0, l_A, l_B, t, 0, BC);
 
 %% Module 5: Adhesive Stresses and Overlap Adherent Load Distributions
-
-% xB vector must be adjusted to the x-axis system used in the adhesive
-% stress analysis: -l_B <= xB <= 0
-xBB = triu(xB-l_B);
-xBB(triu(ones(size(xBB)))==0) = NaN;
 
 % Adhesive stresses derrived using the horizontal force component
 F = P*cos(alpha);
@@ -402,13 +372,11 @@ end
 %% Module 7: Strain Energy Release Rate
 
 % Strain Energy Release Rate (3 methods)
-[serr, mr]          = Strain_Energy_Release_Rate('Fern1und1991', AExx_A, EIxx_A, P, M_k, M_k0);
-[serr2, mr2]        = Strain_Energy_Release_Rate('Verreman1992', t_a, E_a, G_a, max(Peel_a,[],2), max(Shear_a,[],2));
-[serr_inf, mr_inf]  = Strain_Energy_Release_Rate('Brussat1977', t, E, AExx_A, EIxx_A, EIxx_B_ta0, P, M_k, M_k0);
+[serr, mr] = Strain_Energy_Release_Rate('Fern1und1991', AExx_A, EIxx_A, P, M_k, M_k0);
 
 % Enforce DAF effect
-q1      = round(1/3*q_max);
-q2      = round(2/3*q_max);
+q1      = round(1/4*q_max);
+q2      = round(3/4*q_max);
 daf_I   = 0;
 daf_II  = 0;
 x_daf   = 0:1:(q2-q1);
@@ -424,39 +392,34 @@ serr.MR              = serr.GII./serr.G;
 %% Module 8: Adhesive DGR and numerical integration
 
 % Crack Growth Rate (model from D. Burger (2005), FM94 adhesive)
-[dbdN, dG1_eq] = Crack_Growth_Rate(serr.GI, serr.GII, serr.MR, c_0, m_0, c_100, 10^(-8));
+[dbdN, dG1_eq] = Crack_Growth_Rate(serr.GI, serr.GII, serr.MR, c_0, m_0, c_100, 1e-11);
 
 if dbdN(1) == 0
     disp('Warning! No adhesive disbond growth exists..!');
+end
+
+% Set crack increments to stop if dbdN = 0 has occured
+b = xB(1, 1:q_max)';
+if any(dbdN==0)
+    ind = find(dbdN==0, 1);
+    b(ind:end) = b(ind);
 end
 
 %% Module 9: Fatigue Accumulation
 
 if strcmp(AdMat, 'FML')
     % First we have to merge the stress matrices of region A and B of the
-    % upper adherent so that we get one stress matrix spanning all elements
-    Sa_nom_A0 = Sa_nom_A;
-    Sm_nom_A0 = Sm_nom_A;
-    Sa_nom_A0(isnan(Sa_nom_A0)) = 0;
-    Sm_nom_A0(isnan(Sm_nom_A0)) = 0;
-    
-    Sa_nom_BT0 = Sa_nom_BT;
-    Sm_nom_BT0 = Sm_nom_BT;
-    Sa_nom_BT0(isnan(Sa_nom_BT0)) = 0;
-    Sm_nom_BT0(isnan(Sm_nom_BT0)) = 0;
-    
-    Sa_nom_ACB = [Sa_nom_A(:,1:q,:) Sa_nom_A0(:,q+1:end,:)+Sa_nom_BT0(:,1:q_max,:) Sa_nom_BT(:,q_max+1:end,:)];
-    Sm_nom_ACB = [Sm_nom_A(:,1:q,:) Sm_nom_A0(:,q+1:end,:)+Sm_nom_BT0(:,1:q_max,:) Sm_nom_BT(:,q_max+1:end,:)];
-    
-    dbdN(:) = 0;
+    % upper adherent so that we get one stress matrix spanning all elements 
+    [Sa_nom_ACB] = xMatrix_Zipper(Sa_nom_A, Sa_nom_BT, q, q_max, NaN, 'zip');
+    [Sm_nom_ACB] = xMatrix_Zipper(Sm_nom_A, Sm_nom_BT, q, q_max, NaN, 'zip');
     
     % Fatigue damage accumulation
-    [Minor_csm, Minor, dN, N_f] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom_ACB(:,:,:), Sm_nom_ACB(:,:,:), Al.Su, dbdN, dlB);
+    [Minor, dMinor, dN] = Adherent_Fatigue_Accumulation('Military Handbook - Sheet', Sa_nom_ACB(:,:,:), Sm_nom_ACB(:,:,:), Al.Su, dbdN, l_B0/q);
 end
 
 %% Module 10: Results Plotting
 
-figures = 1;
+figures = 0;
 
 if figures == 1
     
@@ -512,6 +475,7 @@ gui = 1;
 if gui == 1
     % Store in application data to allow acces by the GUI
     if strcmp(AdMat, 'FML')
+        setappdata(0, 'l_A', l_A*1000);
         setappdata(0,'N1',OALoad_T.N);
         setappdata(0,'Q1',OALoad_T.Q);
         setappdata(0,'M1',OALoad_T.M);
@@ -521,23 +485,29 @@ if gui == 1
         setappdata(0,'Shear_a',Shear_a);
         setappdata(0,'Peel_a',Peel_a);
         setappdata(0,'N',cumsum(dN));
+        setappdata(0,'b',b*1000);
         setappdata(0,'dbdN',dbdN(1:length(dN)));
-        setappdata(0,'MinorSum',Minor_csm);
-        setappdata(0,'Sm_nom_BT',Sm_nom_BT(:,:,1));
-        setappdata(0,'Sa_nom_BT',Sa_nom_BT(:,:,1));
-        setappdata(0,'Sm_nom_BL',Sm_nom_BL(:,:,1));
-        setappdata(0,'Sa_nom_BL',Sa_nom_BL(:,:,1));
-        setappdata(0,'Sm_nom_A',Sm_nom_A(:,:,1));
-        setappdata(0,'Sa_nom_A',Sa_nom_A(:,:,1));
+        setappdata(0,'dMinor',dMinor);
+        setappdata(0,'Minor',Minor);
+        setappdata(0,'Sm_nom_ACB',Sm_nom_ACB);
+        setappdata(0,'Sa_nom_ACB',Sa_nom_ACB);
+        setappdata(0,'Sm_nom_BT',Sm_nom_BT);
+        setappdata(0,'Sa_nom_BT',Sa_nom_BT);
+        setappdata(0,'Sm_nom_BL',Sm_nom_BL);
+        setappdata(0,'Sa_nom_BL',Sa_nom_BL);
+        setappdata(0,'Sm_nom_A',Sm_nom_A);
+        setappdata(0,'Sa_nom_A',Sa_nom_A);
         setappdata(0,'GI', serr.GI);
         setappdata(0,'GII', serr.GII);
         setappdata(0,'dG1_eq', dG1_eq);
-        setappdata(0,'G_inf', serr_inf.G);
+        setappdata(0,'xAB',xAB*1000);
         setappdata(0,'x',xBB*1000);
         setappdata(0,'Sy',Al.y1);
         setappdata(0,'Su',Al.Su);
         
-        run('GUI_FinalPlots');
-        run('GUI_FinalPlots2');
+        %run('GUI_FinalPlots');
+        run('GUI_FinalPlots3');
     end
 end
+
+toc

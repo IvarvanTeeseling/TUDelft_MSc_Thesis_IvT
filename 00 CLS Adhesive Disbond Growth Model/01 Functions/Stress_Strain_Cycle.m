@@ -35,7 +35,7 @@ for i = [1 length(z_mid)]
     e_xx(:,:,:,cnt) = e_x0-z_mid(i)*k_x;
     
     % Total stress
-    S_xx(:,:,:,cnt) = ABD.stiff(1,1,i)*e_xx(:,:,:,cnt);
+    S_xx(:,:,:,cnt) = ABD.stiff(1,1,i)*e_xx(:,:,:,cnt)*0.7;
     
     % R-ratio
     R_nom(:,:,cnt)      = S_xx(:,:,1,cnt)./S_xx(:,:,2,cnt);

@@ -22,7 +22,7 @@ function varargout = Figure_To_Crack_Length(varargin)
 
 % Edit the above text to modify the response to help Figure_To_Crack_Length
 
-% Last Modified by GUIDE v2.5 27-Jul-2018 12:55:47
+% Last Modified by GUIDE v2.5 03-Aug-2018 17:24:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -72,39 +72,6 @@ function varargout = Figure_To_Crack_Length_OutputFcn(hObject, eventdata, handle
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-
-% --- Executes on button press in pbCloseFigure.
-function pbCloseFigure_Callback(hObject, eventdata, handles)
-% hObject    handle to pbCloseFigure (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-if isappdata(0, 'Ruler')
-    rmappdata(0, 'Ruler')
-end
-
-if isappdata(0, 'Files')
-    rmappdata(0, 'Files')
-end
-
-if isappdata(0, 'Ruler')
-    rmappdata(0, 'Ruler')
-end
-if isappdata(0, 'SF')
-    rmappdata(0, 'SF')
-end
-
-if isappdata(0, 'CurrentFileKey')
-    rmappdata(0, 'CurrentFileKey')
-end
-
-if isappdata(0, 'Results')
-    rmappdata(0, 'Results')
-end
-
-% Close the figure
-close('Figure_To_Crack_Length')
-
 % --- Executes on button press in pbMakeMeasurement.
 function pbMakeMeasurement_Callback(hObject, eventdata, handles)
 % hObject    handle to pbMakeMeasurement (see GCBO)
@@ -120,14 +87,14 @@ FJ = str2num(get(handles.etFigureJump, 'string'));
 NpI = str2num(get(handles.etCyclesPerImage, 'string'));
 NfI = str2num(get(handles.etFirstImageCycles, 'string'));
 
-for i = 1:length(Ruler.hnd) 
+for i = 1:length(Ruler.hnd)
     % Get the ruler handle
     h = Ruler.hnd(i);
     
     % Check if still exists
     if Ruler.deleted(i) == 0
         % get the distance
-        api = iptgetapi(h); 
+        api = iptgetapi(h);
         dist = api.getDistance();
         pos = api.getPosition();
         
@@ -137,16 +104,17 @@ for i = 1:length(Ruler.hnd)
             
             % Create matrix to store results
             Results = zeros(1,9);
-            Results(1,1) = 1;
-            Results(1,2) = FileKey;
-            Results(1,3) = Ruler.key(i);
-            Results(1,4) = pos(1,1);
-            Results(1,5) = pos(1,2);
-            Results(1,6) = pos(2,1);
-            Results(1,7) = pos(2,2);
-            Results(1,8) = dist;
-            Results(1,9) = SF.val;
-            Results(1,10) = (FileKey-1)*NpI+NfI;
+            Results(1,1)    = 1;
+            Results(1,2)    = FileKey;
+            Results(1,3)    = Ruler.key(i);
+            Results(1,4)    = pos(1,1);
+            Results(1,5)    = pos(1,2);
+            Results(1,6)    = pos(2,1);
+            Results(1,7)    = pos(2,2);
+            Results(1,8)    = dist;
+            Results(1,9)    = SF.val;
+            Results(1,10:14) = Results(1,4:8)*SF.val;
+            Results(1,15)   = (FileKey-1)*NpI+NfI;
             
             % Store the results
             setappdata(0, 'Results', Results);
@@ -157,22 +125,27 @@ for i = 1:length(Ruler.hnd)
             if ~exist('cnt', 'var')
                 cnt = max(Results(:,1))+1;
             end
-                        
+            
             % Set results
             ResultsNew = [cnt ...
                 FileKey ...
                 Ruler.key(i)...
                 pos(1,1) ...
-                pos(2,1) ...
+                pos(1,2) ...
                 pos(2,1) ...
                 pos(2,2) ...
                 dist ...
                 SF.val ...
+                pos(1,1)*SF.val ...
+                pos(1,2)*SF.val ...
+                pos(2,1)*SF.val ...
+                pos(2,2)*SF.val ...
+                dist*SF.val ...
                 (FileKey-1)*NpI+NfI];
             
             % Overwrite existing file measurements
-            if any(Results(:,2)==FileKey)
-                Results(Results(:,2)==FileKey,:) = ResultsNew;
+            if any(sum(Results(:,2:3)==[FileKey Ruler.key(i)], 2)==2)
+                Results(sum(Results(:,2:3)==[FileKey Ruler.key(i)], 2)==2,:) = ResultsNew;
             else
                 % Store the results
                 Results = [Results ; ResultsNew];
@@ -333,15 +306,41 @@ function pbSave_Callback(hObject, eventdata, handles)
 % Ask for folder
 folder = uigetdir();
 
-if ~isequal(folder,0)
+% Create sepperate output for each ruler
 
+Results = getappdata(0, 'Results');
+Ruler   = getappdata(0, 'Ruler');
+
+if ~isequal(folder,0)
+    
     % Ask for file name
     prompt = {'Please give a file name (.xls will be added automatically):'};
     title = 'Input';
     answer = inputdlg(prompt,title);
     
-    xlswrite(fullfile(folder, answer{1}), getappdata(0, 'Results'));
+    if isempty(answer)
+        disp('Canceled saving.')
+    else
+        for i = 1:size(Ruler.hnd,1)
+            % Find rows with corresponding ruler key
+            ind = Results(:,3)==Ruler.key(i);
+            
+            % Isolate respective data
+            res = Results(ind,:);
+            
+            % Write to excel file in a new sheet
+            xlswrite(fullfile(folder, answer{1}), Results, 'All Measurements', "A2");
+            xlswrite(fullfile(folder, answer{1}), res, ['Ruler ' num2str(Ruler.key(i))], "A2");
+            xlswrite(fullfile(folder, answer{1}), get(handles.tbResults, 'ColumnName')', 'All Measurements', "A1");
+            xlswrite(fullfile(folder, answer{1}), get(handles.tbResults, 'ColumnName')', ['Ruler ' num2str(Ruler.key(i))], "A1");
+            
+            % Write to .CSV
+            dlmwrite([fullfile(folder, answer{1}) '.txt'], Results);
+        end
+        
+    end
 end
+
 
 % --- Executes on button press in pbSetScaling.
 function pbSetScaling_Callback(hObject, eventdata, handles)
@@ -400,7 +399,6 @@ if strcmp(answer, 'Continue')
     
 end
 
-
 % --- Executes during object creation, after setting all properties.
 function tbResults_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to tbResults (see GCBO)
@@ -408,7 +406,7 @@ function tbResults_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Set column names
-set(hObject, 'columnname', {'Measure Index', 'File Index', 'Ruler Index', 'x_0', 'x_1', 'y_0', 'y_1', 'L', 'SF', 'Load Cycle'});
+set(hObject, 'columnname', {'Measure Index', 'File Index', 'Ruler Index', 'x_0', 'x_1', 'y_0', 'y_1', 'l', 'SF', 'X_0', 'X_1', 'Y_0', 'Y_1', 'L', 'Load Cycle'});
 
 
 % --- Executes on button press in pbDeleteRuler.
@@ -436,47 +434,6 @@ if isappdata(0, 'Ruler')
         setappdata(0, 'Ruler', Ruler)
     end
 end
-
-
-% --- Executes on button press in pbClear.
-function pbClear_Callback(hObject, eventdata, handles)
-% hObject    handle to pbClear (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Ask for confirmation
-promptMessage = sprintf('Do you want to Continue? All data will be lost!');
-button = questdlg(promptMessage, 'Continue', 'Continue', 'Cancel', 'Continue');
-
-% Only delete when confirmed
-if strcmpi(button, 'Continue')
-    if isappdata(0, 'Ruler')
-        rmappdata(0, 'Ruler')
-    end
-    
-    if isappdata(0, 'Ruler')
-        rmappdata(0, 'Ruler')
-    end
-    if isappdata(0, 'SF')
-        rmappdata(0, 'SF')
-    end
-    
-    if isappdata(0, 'CurrentFileKey')
-        rmappdata(0, 'CurrentFileKey')
-    end
-    
-    if isappdata(0, 'Results')
-        rmappdata(0, 'Results')
-    end
-    
-    % Clear results overview
-    set(handles.tbResults, 'Data', []);
-    
-    % Close the figure
-    close(figure(1));
-    
-end
-
 
 % --- Executes during object creation, after setting all properties.
 function pbClear_CreateFcn(hObject, eventdata, handles)
@@ -634,3 +591,74 @@ function etFigureJump_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+% --- Executes on button press in pbClear.
+function pbClear_Callback(hObject, eventdata, handles)
+% hObject    handle to pbClear (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Ask for confirmation
+promptMessage = sprintf('Do you want to Continue? All data will be lost!');
+button = questdlg(promptMessage, 'Continue', 'Continue', 'Cancel', 'Continue');
+
+% Only delete when confirmed
+if strcmpi(button, 'Continue')
+    if isappdata(0, 'Ruler')
+        rmappdata(0, 'Ruler')
+    end
+    
+    if isappdata(0, 'Ruler')
+        rmappdata(0, 'Ruler')
+    end
+    if isappdata(0, 'SF')
+        rmappdata(0, 'SF')
+    end
+    
+    if isappdata(0, 'CurrentFileKey')
+        rmappdata(0, 'CurrentFileKey')
+    end
+    
+    if isappdata(0, 'Results')
+        rmappdata(0, 'Results')
+    end
+    
+    % Clear results overview
+    set(handles.tbResults, 'Data', []);
+    
+    % Close the figure
+    close(figure(1));
+end
+
+% --- Executes on button press in pbCloseFigure.
+function pbCloseFigure_Callback(hObject, eventdata, handles)
+% hObject    handle to pbCloseFigure (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if isappdata(0, 'Ruler')
+    rmappdata(0, 'Ruler')
+end
+
+if isappdata(0, 'Files')
+    rmappdata(0, 'Files')
+end
+
+if isappdata(0, 'Ruler')
+    rmappdata(0, 'Ruler')
+end
+
+if isappdata(0, 'SF')
+    rmappdata(0, 'SF')
+end
+
+if isappdata(0, 'CurrentFileKey')
+    rmappdata(0, 'CurrentFileKey')
+end
+
+if isappdata(0, 'Results')
+    rmappdata(0, 'Results')
+end
+
+% Close the figure
+close('Figure_To_Crack_Length')

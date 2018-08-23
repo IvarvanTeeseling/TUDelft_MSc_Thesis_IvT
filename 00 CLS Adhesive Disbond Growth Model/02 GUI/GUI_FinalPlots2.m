@@ -22,16 +22,16 @@ function varargout = GUI_FinalPlots2(varargin)
 
 % Edit the above text to modify the response to help GUI_FinalPlots2
 
-% Last Modified by GUIDE v2.5 25-May-2018 15:52:33
+% Last Modified by GUIDE v2.5 01-Aug-2018 18:27:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @GUI_FinalPlots2_OpeningFcn, ...
-                   'gui_OutputFcn',  @GUI_FinalPlots2_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @GUI_FinalPlots2_OpeningFcn, ...
+    'gui_OutputFcn',  @GUI_FinalPlots2_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -63,7 +63,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = GUI_FinalPlots2_OutputFcn(hObject, eventdata, handles) 
+function varargout = GUI_FinalPlots2_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -123,12 +123,11 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 
 x = getappdata(0, 'x');
-N = getappdata(0, 'N');
 
 set(hObject, 'Min', 1);
-set(hObject, 'Max', size(N,1));
-set(hObject, 'Value', size(N,1));
-set(hObject, 'SliderStep', [10/(size(N,1)-1) , 100/(size(N,1)-1)]);
+set(hObject, 'Max', size(x,1));
+set(hObject, 'Value', size(x,1));
+set(hObject, 'SliderStep', [10/(size(x,1)-1) , 100/(size(x,1)-1)]);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -139,8 +138,8 @@ function axes_Minor_CreateFcn(hObject, eventdata, handles)
 
 % Hint: place code in OpeningFcn to populate axes_Minor
 
-x           = getappdata(0, 'x');
-MinorSum    = getappdata(0, 'MinorSum');
+x = getappdata(0, 'x');
+MinorSum = getappdata(0, 'MinorSum');
 
 hold on
 handles.PlotMinor1 = plot(x(1,:), MinorSum(end,:),'b');
@@ -167,11 +166,24 @@ function axes_b_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: place code in OpeningFcn to populate axes_b
+% if isappdata(0, 'n')
+%     n = getappdata(0, 'n');
+% else
+%     n = evalin('base','n');
+%     setappdata(0, 'n', n);
+% end
+%
+% if isappdata(0, 'x')
+%     x = getappdata(0, 'x');
+% else
+%     x = evalin('base','x00');
+%     setappdata(0, 'x', x);
+% end
 
 N = getappdata(0, 'N');
 x = getappdata(0, 'x');
 
-x = x(1,1:size(N))-x(1,1);
+x = x(1,1:size(x,1))-x(1,1);
 
 hold on
 handles.Plotb = plot(N, x,'b');
@@ -194,10 +206,26 @@ function axes_dbdN_CreateFcn(hObject, eventdata, handles)
 
 % Hint: place code in OpeningFcn to populate axes_dbdN
 
-N       = getappdata(0, 'N');
-dbdN    = getappdata(0, 'dbdN');
+% if isappdata(0, 'n')
+%     n = getappdata(0, 'n');
+% else
+%     n = evalin('base','n');
+%     setappdata(0, 'n', n);
+% end
+%
+% if isappdata(0, 'dbdN')
+%     dbdN = getappdata(0, 'dbdN');
+% else
+%     dbdN = evalin('base','dbdN');
+%     setappdata(0, 'dbdN', dbdN);
+% end
 
+N = getappdata(0, 'N');
+dbdN = getappdata(0, 'dbdN');
+
+hold on
 handles.PlotdbdN = plot(N, dbdN,'b');
+hold off
 title('Crack growth rate (db/dN)')
 ylabel('Growth Rate [mm/cycle]')
 xlabel('Number of load cycles (N) [-]')
@@ -223,28 +251,28 @@ function axes_StressCycle_CreateFcn(hObject, eventdata, handles)
 
 % Hint: place code in OpeningFcn to populate axes_StressCycle
 
-x = getappdata(0, 'x');
-Sa_nom_ad1 = getappdata(0, 'Sa_nom_ad1');
-Sm_nom_ad1 = getappdata(0, 'Sm_nom_ad1');
-Sy         = getappdata(0, 'Sy');
-Su         = getappdata(0, 'Su');
-St_nom_ad1 = Sa_nom_ad1 + Sm_nom_ad1;
+xAB         = getappdata(0, 'xAB');
+Sa_nom_ACB  = getappdata(0, 'Sa_nom_ACB');
+Sm_nom_ACB  = getappdata(0, 'Sm_nom_ACB');
+Sy          = getappdata(0, 'Sy');
+Su          = getappdata(0, 'Su');
+St_nom_ACB  = Sa_nom_ACB+Sm_nom_ACB;
 
 hold on
-handles.PlotSm_ad1   = plot(x(1,:), Sm_nom_ad1(end,:),'r');
-handles.PlotStot_ad1 = plot(x(1,:), St_nom_ad1(end,:),'b');
-handles.PlotSy       = plot(x(1,:), Sy*ones(1,size(x,2)),'g');
-handles.PlotSu       = plot(x(1,:), Su*ones(1,size(x,2)),'c');
+handles.PlotSm_ACB  = plot(xAB(1,:), St_nom_ACB(end,:,1), 'r');
+handles.PlotSt_ACB  = plot(xAB(1,:), St_nom_ACB(end,:,1), 'b');
+handles.PlotSy      = plot(xAB(1,:), Sy*ones(1,size(xAB,2)), 'g');
+handles.PlotSu      = plot(xAB(1,:), Su*ones(1,size(xAB,2)), 'c');
 hold off
 title('Load Cycle Stress')
-legend('Mean S_{m,nom}', 'Total Stress S_{tot}','Yield Stress \sigma_{y}','Failure Stress \sigma_{u}')
+legend('Top Ply S_{xx,max}', 'Lower Ply S_{xx,max}', 'Yield Stress \sigma_{y}' , 'Ultimate Stress \sigma_{y}')
 ylabel('Stress [MPa]')
 xlabel('Distance x [mm]')
-xlim([x(1,1) x(1,end)]);
-if max(St_nom_ad1(:)) >= Su
-    ylim([min(Sm_nom_ad1(:)) max(St_nom_ad1(:))*1.1]);
+xlim([xAB(1,1) xAB(1,end)]);
+if max(St_nom_ACB(:)) > Su
+    ylim([min(Sm_nom_ACB(:)) Su]);
 else
-    ylim([min(Sm_nom_ad1(:)) Su*1.1]);
+    ylim([min(Sm_nom_ACB(:)) max(St_nom_ACB(:))]);
 end
 grid on
 
@@ -263,20 +291,18 @@ x   = getappdata(0, 'x');
 GI  = getappdata(0, 'GI');
 GII = getappdata(0, 'GII');
 G   = GI + GII;
-G_inf = getappdata(0, 'G_inf');
 
 hold on
 handles.PlotG   = plot(x(1,1:size(x,1)), G(:,:,2),'r');
 handles.PlotGI  = plot(x(1,1:size(x,1)), GI(:,:,2),'b');
 handles.PlotGII = plot(x(1,1:size(x,1)), GII(:,:,2),'g');
-handles.PlotG_inf = plot(x(1,1:size(x,1)), ones(1,size(G(:,:,2),1))*G_inf(:,:,2),'--r');
 hold off
 title('Strain Energy Release Rate')
 legend('G', 'G_{I}','G_{II}')
 ylabel('SERR')
 xlabel('Distance x [mm]')
 xlim([x(1,1) x(1,end)]);
-ylim([0 max(G(:))*1.1]);
+ylim([0 max(G(:))]);
 grid on
 
 % Update handles structure
@@ -314,3 +340,10 @@ grid on
 
 % Update handles structure
 guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function figure1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
