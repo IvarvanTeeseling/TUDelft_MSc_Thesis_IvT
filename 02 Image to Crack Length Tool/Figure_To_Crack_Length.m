@@ -22,7 +22,7 @@ function varargout = Figure_To_Crack_Length(varargin)
 
 % Edit the above text to modify the response to help Figure_To_Crack_Length
 
-% Last Modified by GUIDE v2.5 03-Aug-2018 17:24:27
+% Last Modified by GUIDE v2.5 13-Sep-2018 17:37:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -314,30 +314,28 @@ Ruler   = getappdata(0, 'Ruler');
 if ~isequal(folder,0)
     
     % Ask for file name
-    prompt = {'Please give a file name (.xls will be added automatically):'};
+    prompt = {'Please give a file name (.xlsx will be added automatically):'};
     title = 'Input';
     answer = inputdlg(prompt,title);
     
     if isempty(answer)
         disp('Canceled saving.')
     else
-        for i = 1:size(Ruler.hnd,1)
+        
+        % Write to excel file in a new sheet
+        xlswrite(fullfile(folder, answer{1}), Results, 'All Measurements', "A2");
+        xlswrite(fullfile(folder, answer{1}), get(handles.tbResults, 'ColumnName')', 'All Measurements', "A1");
+        
+        for i = 1:size(Ruler.hnd, 1)
             % Find rows with corresponding ruler key
             ind = Results(:,3)==Ruler.key(i);
             
             % Isolate respective data
             res = Results(ind,:);
             
-            % Write to excel file in a new sheet
-            xlswrite(fullfile(folder, answer{1}), Results, 'All Measurements', "A2");
             xlswrite(fullfile(folder, answer{1}), res, ['Ruler ' num2str(Ruler.key(i))], "A2");
-            xlswrite(fullfile(folder, answer{1}), get(handles.tbResults, 'ColumnName')', 'All Measurements', "A1");
             xlswrite(fullfile(folder, answer{1}), get(handles.tbResults, 'ColumnName')', ['Ruler ' num2str(Ruler.key(i))], "A1");
-            
-            % Write to .CSV
-            dlmwrite([fullfile(folder, answer{1}) '.txt'], Results);
         end
-        
     end
 end
 
@@ -662,3 +660,23 @@ end
 
 % Close the figure
 close('Figure_To_Crack_Length')
+
+
+% --- Executes on key press with focus on figure1 or any of its controls.
+function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)  
+
+
+% --- Executes on key press with focus on figure1 and none of its controls.
+function figure1_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
