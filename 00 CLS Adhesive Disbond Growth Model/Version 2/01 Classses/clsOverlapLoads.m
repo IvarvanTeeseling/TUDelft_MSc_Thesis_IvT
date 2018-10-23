@@ -118,6 +118,7 @@ classdef clsOverlapLoads
             beta_t = sqrt(8*Ga/(Exx*t*ta));
             
             % Integration constants
+            %   > Source: [daSilva2008, page 42, EQ 2.65]
             Bs1 = Mk.*(sinh(beta_s*lcb).*cos(beta_s*lcb)+ ...
                 cosh(beta_s*lcb).*sin(beta_s*lcb))+ ...
                 Qk/beta_s.*sinh(beta_s*lcb).*sin(beta_s*lcb);

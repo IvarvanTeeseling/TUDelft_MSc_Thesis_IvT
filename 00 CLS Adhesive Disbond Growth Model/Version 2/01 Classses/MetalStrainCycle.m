@@ -4,15 +4,15 @@ classdef MetalStrainCycle
     
     properties (GetAccess = public, SetAccess = private)
         exx         % Metal ply total (true/eng) strain xx
-        exxm       	% Metal ply mechanical (true/eng) strain xx
+        exxmech   	% Metal ply mechanical (true/eng) strain xx
         exxpl     	% Metal ply plastic (true/eng) strain xx
-        exxr      	% Metal ply residual (true/eng) strain xx
+        exxres   	% Metal ply residual (true/eng) strain xx
         eTypeInp    % Input type (default = 'EngStrain') (optional)
         eTypeOut    % Output type (default = 'EngStrain') (optional)
     end
     
     methods
-        function obj = MetalStrainCycle(Exx, exxm, exxr, exxrth, varargin)
+        function obj = MetalStrainCycle(Exx, exxmech, exxres, exxrth, varargin)
             % > MetalStrainCycle() constructs an instance of this class.
             %
             % > Inputs arguments are passed through an input parser to
@@ -46,7 +46,7 @@ classdef MetalStrainCycle
             addOptional(p, 'eTypeOut', 'EngStrain', valideType)
             
             % Validate the input arguments
-            parse(p, Exx, exxm, exxr, exxrth, varargin{:});
+            parse(p, Exx, exxmech, exxres, exxrth, varargin{:});
             
             obj.eTypeInp = p.Results.eTypeInp;
             obj.eTypeOut = p.Results.eTypeOut;
@@ -55,13 +55,13 @@ classdef MetalStrainCycle
             
             if strcmp(p.Results.eTypeInp, 'EngStrain')
                 % Input is in engineering strain > convert
-                exxm_tr = StressStrainConvert.eConvert(exxm, 'Eng2True');
-                exxr_tr = StressStrainConvert.eConvert(exxr, 'Eng2True');
+                exxm_tr = StressStrainConvert.eConvert(exxmech, 'Eng2True');
+                exxr_tr = StressStrainConvert.eConvert(exxres, 'Eng2True');
                 exxrth_tr = StressStrainConvert.eConvert(exxrth, 'Eng2True');
             else
                 % Input is already true strain
-                exxm_tr = exxm;
-                exxr_tr = exxr;
+                exxm_tr = exxmech;
+                exxr_tr = exxres;
                 exxrth_tr = exxrth;
             end
             
@@ -114,7 +114,7 @@ classdef MetalStrainCycle
                         
                         % Re-assemble the final total true strain cycle
                         exx_tr(i,:,:,:) = exxm_tr(i,:,:,:) + ...
-                            exxr_tr(1)*flag(i,:,:,:)+exxpl_tr(i,:,:,:);
+                            exxr_tr(1)*flag(i,:,:,:);
                     end
             end
             
@@ -122,17 +122,17 @@ classdef MetalStrainCycle
             if strcmp(p.Results.eTypeOut, 'EngStrain')
                 obj.exx = StressStrainConvert.eConvert(exx_tr, ... 
                     'True2Eng');
-                obj.exxm = StressStrainConvert.eConvert(exxm_tr, ...
+                obj.exxmech = StressStrainConvert.eConvert(exxm_tr, ...
                     'True2Eng');
                 obj.exxpl = StressStrainConvert.eConvert(exxpl_tr, ...
                     'True2Eng');
-                obj.exxr =StressStrainConvert.eConvert(exxr_tr(1)*flag, ...
+                obj.exxres =StressStrainConvert.eConvert(exxr_tr(1)*flag, ...
                     'True2Eng');
             else
                 obj.exx = exx_tr;
-                obj.exxm = exxm_tr;
+                obj.exxmech = exxm_tr;
                 obj.exxpl = exxpl_tr;
-                obj.exxr = exxr_tr(1)*flag;
+                obj.exxres = exxr_tr(1)*flag;
             end
         end
     end

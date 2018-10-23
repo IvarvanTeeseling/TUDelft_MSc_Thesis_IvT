@@ -1,4 +1,4 @@
-function  [x, y, z, zi, zii] = dicgriddata(X, Y, Z, nx, ny, method, xc, yc)
+function  [intXYZ, extXYZ] = dicgriddata(x, y, z, nx, ny, rec, intmet, gapmet, xc, yc)
 % By default, griddata() will interpolate across all coordinates on the
 % (x, y) grid within the data convex hull. Any gaps in the data within the
 % convex hull will thus automatically be filled and must be restored if
@@ -8,31 +8,61 @@ function  [x, y, z, zi, zii] = dicgriddata(X, Y, Z, nx, ny, method, xc, yc)
 
 % Mask empty data points (marked by Z = 0) to avoid that they
 % locally distort the interpolation
-mask = (Z==0);
-Xadj = X(~mask);
-Yadj = Y(~mask);
-Zadj = Z(~mask);
+mask = (z==0);
+xadj = x(~mask);
+yadj = y(~mask);
+zadj = z(~mask);
 
-% Create the (x, y) meshgrid
-x = linspace(min(Xadj(:))*0.99, max(Xadj(:)*0.99), size(X, 2)*nx);
-y = linspace(min(Yadj(:))*0.99, max(Yadj(:)*0.99), size(Y, 1)*ny);
-[x, y] = meshgrid(x, y);
+% Create (X, Y) grid based on the overlap region dimensions
+X = linspace(rec(1), rec(1)+rec(3), size(x, 2)*nx);
+Y = linspace(rec(2), rec(2)+rec(4), size(y, 1)*ny);
+[X, Y] = meshgrid(X, Y);
+
+% Pre-fill exterior (x, y) mesh grid
+% Note: exterior grid locations with DIC data are marked by extZ = NaN
+extZ = NaN(size(X));
 
 % Interpolate the raw data over the (x, y) meshgrid
-z = griddata(Xadj, Yadj, Zadj, x, y, 'linear');
+Z = griddata(xadj, yadj, zadj, X, Y, intmet);
 
-% Empty the given polygon if requested
-if strcmp(method, 'nofill') && ~isempty(xc) && ~isempty(yc) && length(xc) == length(yc)
+% Find X-coordinates without DIC data (columns filled by NaN)
+nancols = any(~isnan(Z), 1);
+
+% Only keep the interior intX-coordinates with DIC data
+intX = X(:, nancols);
+intY = Y(:, nancols);
+intZ = Z(:, nancols);
+
+% Mark exterior extX-coordinates without DIC data with zero 
+extZ(:, ~nancols) = 0;
+
+% Find Y-coordinates without DIC data (rows filled by NaN)
+nanrows = any(~isnan(Z), 2);
+
+% Only keep the interior intY-coordinates with DIC data
+intX(~nanrows, :) = [];
+intY(~nanrows, :) = [];
+intZ(~nanrows, :) = [];
+
+% Mark exterior extY-coordinates without DIC data with zero 
+extZ(~nanrows, :) = 0;
+
+% Empty interpolated Z-data on the location of the bolt if requested
+if strcmp(gapmet, 'nofill') && ~isempty(xc) && ~isempty(yc) && length(xc) == length(yc)
     % Find data points inside the boundary
-    in = inpolygon(x, y, xc, yc);
+    intXYZcirc = inpolygon(intX, intY, xc, yc);
+    
     % Suppress data points inside the boundary
-    z(in) = NaN;
+    intZ(intXYZcirc) = NaN;
 end
 
-% Differentiate z w.r.t. y (1-dimension)
-zi = diff(z, 1, 1);
-zii = diff(z, 2, 1);
+% Aggregate output
+intXYZ(:,:,1) = intX;
+intXYZ(:,:,2) = intY;
+intXYZ(:,:,3) = intZ;
 
-% Remove rows and columns full of NaN
+extXYZ(:,:,1) = X;
+extXYZ(:,:,2) = Y;
+extXYZ(:,:,3) = extZ;
 
 end

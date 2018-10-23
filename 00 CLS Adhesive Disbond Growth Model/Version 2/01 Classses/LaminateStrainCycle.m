@@ -1,5 +1,5 @@
-classdef MechStrainCycle
-    %MechStrainCycle Summary of this class goes here
+classdef LaminateStrainCycle
+    %LaminateStrainCycle Summary of this class goes here
     %   Detailed explanation goes here
     
     properties (GetAccess = public, SetAccess = private)
@@ -9,8 +9,8 @@ classdef MechStrainCycle
     end
     
     methods
-        function obj = MechStrainCycle(zply, EAxx, EIxx, Nxx, Mxx, plyIdx)
-            % > MechStrainCycle() constructs an instance of this class.
+        function obj = LaminateStrainCycle(zply, EAxx, EIxx, Nxx, Mxx, plyIdx)
+            % > LaminateStrainCycle() constructs an instance of this class.
             %
             % > Inputs arguments are passed through an input parser to
             % perform validity checks before being stored as the instance
@@ -45,11 +45,11 @@ classdef MechStrainCycle
             end
             
             % Laminate membrane strain_xx and curvature_xx
-            [exx0, kxx] = MechStrainCycle.laminateStrainCycle(Nxx, Mxx, ...
+            [exx0, kxx] = LaminateStrainCycle.laminateStrainCycle(Nxx, Mxx, ...
                 EAxx, EIxx);
             
             % Ply strain_xx cycle for the requested plies
-            exx = MechStrainCycle.plyStrainCycle(exx0, kxx, zply, plyIdx);
+            exx = LaminateStrainCycle.plyStrainCycle(exx0, kxx, zply, plyIdx);
             
             % Set object properties
             obj.exx0 = exx0;

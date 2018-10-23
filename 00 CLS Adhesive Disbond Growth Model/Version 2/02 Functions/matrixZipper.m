@@ -1,4 +1,4 @@
-function [x12] = xMatrix_Zipper(x1, x2, val, option)
+function [x12] = matrixZipper(x1, x2, val, option)
 
 if ~isnumeric(val)
     error('xMatrix_Zipper: <val> input must be numeric.')
@@ -28,7 +28,7 @@ switch option
         qc = size(x1, 1)-1;
         
         % Zip together
-        x12 = [x1(:,1:end-qc,:) x1(:,end-qc+1:end,:)+x2(:,1:qc,:) x2(:,qc+1:end,:)];
+        x12 = [x1(:,1:end-qc,:,:) x1(:,end-qc+1:end,:,:)+x2(:,1:qc,:,:) x2(:,qc+1:end,:,:)];
     case 'unzip'
 
 end

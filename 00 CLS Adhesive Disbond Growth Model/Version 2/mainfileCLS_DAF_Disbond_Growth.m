@@ -17,14 +17,14 @@ matAlSelect = 1;
 % @matGFSelect
 %   > Input options:
 %       1 = UD glass fiber FM94 S2 prepreg
-%       2 = ADD HERE
+%       2 = GF S2 FM94 UD PrePreg
 matGFSelect = 1;
 
 % 3) Adhesive material selection
 % @matAdSelect
 %   > Input options:
 %       1 = FM94U Film Adhesive (without a carrier)
-%       2 = ADD HERE
+%       2 = 'GF S2 FM94 UD PrePreg with D. Burger coefficients'
 matAdSelect = 1;
 
 % 4) Laminate layup selection
@@ -41,8 +41,12 @@ layupSelect = 2;
 %       1 = BOPACS CLS Specimen, K. Hoidus [N]
 %       2 = Thesis  WSLS Specimen, R. Hanx [N/m]
 %       3 = An ASTM Round Robin CLS specimen, Johnson (1986) [N]
-%       4 = Thesis CLS, I. van Teeseling [N]
-lcSelect = 4;
+%       4 = Thesis CLS, I. van Teeseling 26kN [N]
+%       5 = Thesis CLS, I. van Teeseling 16.5kN [N]
+%       6 = Thesis CLS, I. van Teeseling 19.5kN [N]
+%       7 = Thesis CLS, I. van Teeseling 21kN [N]
+%       8 = Thesis CLS, I. van Teeseling 30kN [N]
+lcSelect = 8;
 
 % 6) Support boundary conditions
 % @bcSelect
@@ -57,8 +61,8 @@ bcSelect = 'CC';
 %   > Input options:
 %       1 = An ASTM Round Robin (CLS-A) from Johnson 1986
 %       2 = CLS Production series 2
-%       3 = CLS Production series 4
-clsSelect = 2;
+%       3 = CLS Production series 3
+clsSelect = 3;
 
 % 8) Discretization
 % @mesh.qac
@@ -74,8 +78,8 @@ clsSelect = 2;
 %       'C' = Element central value
 %       'R' = Element right boundary value
 mesh.qac = 500;
-mesh.qcb = 4000;
-mesh.qcrack = 500;
+mesh.qcb = 1500;
+mesh.qcrack = 700;
 mesh.xpos = 'C';
 
 %% Paramater Initialization - Add Options Here
@@ -105,8 +109,13 @@ disp(['> Fiber ply material created: ' gf.name])
 if matAdSelect == 1
     % FM94U adhesive film (without a carrier)
     adh = Adhesive('elastic', 394e6*(2*(1+0.27)), 394e6*(2*(1+0.27)), ...
-        394e6, 0.33, 5.27e-17, 10^(-17.68379446640316),  3.78, ...
+        394e6, 0.33, 5.27e-17, 10^(-17.68379446640316), 3.78, ... 
         'name', 'FM94U Film Adhesive');
+elseif matAdSelect == 2
+    % FM94U adhesive film (without a carrier)
+    adh = Adhesive('elastic', 48900e6, 5500e6, ...
+        5500e6, 0.33, 1.00521e-12, 5.20667e-15, 3.34, ...
+        'name', 'GF S2 FM94 UD PrePreg');
 end
 disp('>')
 disp(['> Adhesive material created: ' adh.name])
@@ -147,16 +156,16 @@ if clsSelect == 1
     b0 = 0.0;
 elseif clsSelect == 2
     % CLS Production series 2
-    lac0 = 0.06835;
-    lcb0 = 0.145;
+    lac0 = 0.067937+0.1445;
+    lcb0 = 0.1445;
     d = 0.04366;
     b0 = 0.0;
 elseif clsSelect == 3
     % CLS Production series 4
-    lac0 = 0.06835+0.110;
-    lcb0 = 0.110;
-    d = 0.04366;
-    b0 = 0.03;
+    lac0 = 0.06337+0.144585;
+    lcb0 = 0.144585;
+    d = 0.04355;
+    b0 = 0.0;
 end
 
 % 5) Fatigue load cycle
@@ -172,6 +181,18 @@ elseif lcSelect == 3
 elseif lcSelect == 4
     % Thesis CLS, I. van Teeseling [N]
     Load = LoadCycle('N', 26e3, 0.1, d, sum(tply));
+elseif lcSelect == 5
+    % Thesis CLS, I. van Teeseling [N]
+    Load = LoadCycle('N', 16.5e3, 0.1, d, sum(tply));
+elseif lcSelect == 6
+    % Thesis CLS, I. van Teeseling [N]
+    Load = LoadCycle('N', 19.5e3, 0.1, d, sum(tply));
+elseif lcSelect == 7
+    % Thesis CLS, I. van Teeseling [N]
+    Load = LoadCycle('N', 21e3, 0.1, d, sum(tply));
+elseif lcSelect == 8
+    % Thesis CLS, I. van Teeseling [N]
+    Load = LoadCycle('N', 30e3, 0.1, d, sum(tply));
 end
 disp('>')
 disp(['> Load cycle created: ' num2str(Load.P(2)) '[N] (min) - ' num2str(Load.P(1)) '[N] (max)'])
@@ -237,7 +258,7 @@ olLoadDistr = clsOverlapLoads(adMesh.xBC, ...
     0.133e-3);
 
 % Mechanical strain - AC section (out = eng. strain)
-em_ac = MechStrainCycle(adFML.plyZ, ...
+elam_ac = LaminateStrainCycle(adFML.plyZ, ...
     adStiff.EAxxac, ...
     adStiff.EIxxac, ...
     Load.Prunning, ...
@@ -245,7 +266,7 @@ em_ac = MechStrainCycle(adFML.plyZ, ...
     [1 size(layup, 2)]);
 
 % Mechanical strain - CB section; top adherent (out = eng. strain)
-em_cbt = MechStrainCycle(adFML.plyZ, ...
+elam_cbt = LaminateStrainCycle(adFML.plyZ, ...
     adStiff.EAxxac, ...
     adStiff.EIxxac, ...
     olLoadDistr.Nt, ...
@@ -253,7 +274,7 @@ em_cbt = MechStrainCycle(adFML.plyZ, ...
     [1 size(layup, 2)]);
 
 % Mechanical strain - CB section; bottom adherent (out = eng. strain)
-em_cbb = MechStrainCycle(adFML.plyZ, ...
+elam_cbb = LaminateStrainCycle(adFML.plyZ, ...
     adStiff.EAxxac, ...
     adStiff.EIxxac, ...
     olLoadDistr.Nb, ...
@@ -264,7 +285,7 @@ em_cbb = MechStrainCycle(adFML.plyZ, ...
 %ethreshold = adFML.epth(1,1,2)-adFML.epth(1,1,1);
 ethreshold = Inf;
 e_ac = MetalStrainCycle([0 0 ; 4.54e-3 325.98e6 ; 9.87e-3 364.91e6], ...
-    em_ac.exx, adFML.epres(1,1,1), ...
+    elam_ac.exx, adFML.epres(1,1,1), ...
     ethreshold, ...
     'eMethod', 'TrueStressStrain', ...
     'eTypeInp', 'EngStrain', ...
@@ -272,7 +293,7 @@ e_ac = MetalStrainCycle([0 0 ; 4.54e-3 325.98e6 ; 9.87e-3 364.91e6], ...
 
 % Total cycle strain - CB section; top adherent (out = true strain)
 e_cbt = MetalStrainCycle([0 0 ; 4.54e-3 325.98e6 ; 9.87e-3 364.91e6], ...
-    em_cbt.exx, adFML.epres(1,1,1), ...
+    elam_cbt.exx, adFML.epres(1,1,1), ...
     ethreshold, ...
     'eMethod', 'TrueStressStrain', ...
     'eTypeInp', 'EngStrain', ...
@@ -280,7 +301,7 @@ e_cbt = MetalStrainCycle([0 0 ; 4.54e-3 325.98e6 ; 9.87e-3 364.91e6], ...
 
 % Total cycle strain - CB section; bottom adherent (out = true strain)
 e_cbb = MetalStrainCycle([0 0 ; 4.54e-3 325.98e6 ; 9.87e-3 364.91e6], ...
-    em_cbb.exx, adFML.epres(1,1,1), ...
+    elam_cbb.exx, adFML.epres(1,1,1), ...
     ethreshold, ...
     'eMethod', 'TrueStressStrain', ...
     'eTypeInp', 'EngStrain', ...
@@ -304,14 +325,25 @@ S_cbb = MetalStressCycle([0 0 ; 4.54e-3 325.98e6 ; 9.87e-3 364.91e6], ...
     'eTypeIn', 'TrueStrain', ...
     'sTypeOut', 'EngStress');
 
-% Load DAF % SERR Footprint
-load('SERR_DIFF_Fc130.mat');
-
-serr_diff_Fc130(:,1,:) = (serr_diff_Fc130(:,1,:)-55)/1000;
-a = serr_diff_Fc130(:,3,:)/100;
-b = serr_diff_Fc130(:,4,:)/100;
-serr_diff_Fc130(:,2,:) = b;
-serr_diff_Fc130(:,3,:) = a;
+% % Load DAF % SERR Footprint
+% load('SERR_DIFF_Fc130.mat');
+% 
+% serr_diff_Fc130(:,1,:) = (serr_diff_Fc130(:,1,1)-55)/1000;
+% a = serr_diff_Fc130(:,3,1)/100;
+% b = serr_diff_Fc130(:,4,1)/100;
+% serr_diff_Fc130(:,2,:) = b;
+% serr_diff_Fc130(:,3,:) = a;
+% 
+% % Strain Energy Release Rate - DAF effect optionally included
+% serr = SERRCalculator('Fern1und1991', ...
+%     'P', Load.Prunning, ...
+%     'Mk', olEdgeLoads.Mk, ...
+%     'Mk0', olEdgeLoads.Mk0, ...
+%     'EAxxac', adStiff.EAxxac, ...
+%     'EIxxac', adStiff.EIxxac, ...
+%     'xserr', adMesh.xCB(1,1:mesh.qcrack+1)', ...
+%     'DAF', serr_diff_Fc130(:,:,2), ...
+%     'x0daf', 0.005);
 
 % Strain Energy Release Rate - DAF effect optionally included
 serr = SERRCalculator('Fern1und1991', ...
@@ -319,10 +351,7 @@ serr = SERRCalculator('Fern1und1991', ...
     'Mk', olEdgeLoads.Mk, ...
     'Mk0', olEdgeLoads.Mk0, ...
     'EAxxac', adStiff.EAxxac, ...
-    'EIxxac', adStiff.EIxxac, ...
-    'xserr', adMesh.xCB(1,1:mesh.qcrack+1)', ...
-    'DAF', serr_diff_Fc130(:,:,2), ...
-    'x0daf', 0.005);
+    'EIxxac', adStiff.EIxxac);
 
 % Average disbond growth rate per disbond increment
 [dbdN, dG1eq] = adhesiveDGR(serr.GIdaf, ...
@@ -345,7 +374,7 @@ Smxxab = matrixZipper(S_ac.Sxxm, S_cbt.Sxxm, NaN, 'zip');
 
 %% Plotting
 
-gui = 1;
+gui = 0;
 
 if gui == 1
     % Store in application data to allow acces by the GUI

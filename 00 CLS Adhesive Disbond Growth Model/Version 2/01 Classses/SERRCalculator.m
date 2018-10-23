@@ -43,6 +43,7 @@ classdef SERRCalculator
         GII         % Mode II SERR component excl. DAF effect
         GT          % Total SERR component excl. DAF effect
         MR          % Mode Ratio (GII/GT) excl. DAF effect
+        flagDAF     % DAF flagger (default = 'noDAF')
         GIdaf       % Mode I SERR component incl. DAF effect (optional)
         GIIdaf      % Mode II SERR component incl. DAF effect (optional)
         GTdaf       % Totl SERR component incl. DAF effect (optional)
@@ -169,10 +170,18 @@ classdef SERRCalculator
                     p.Results.x0daf);
                 
                 % Set output
+                obj.flagDAF = 'onDAF';
                 obj.GIdaf = GIdaf;
                 obj.GIIdaf = GIIdaf;
                 obj.GTdaf = GTdaf;
                 obj.MRdaf = MRdaf;
+            else
+                % Set output
+                obj.flagDAF = 'offDAF';
+                obj.GIdaf = GI;
+                obj.GIIdaf = GII;
+                obj.GTdaf = GT;
+                obj.MRdaf = MR;
             end
         end
     end
