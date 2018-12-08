@@ -74,10 +74,10 @@ classdef MetalStressCycle
             R = Sxx(:,:,1,:)./Sxx(:,:,2,:);
             
             % Find the cycle mean stress
-            obj.Sxxm = (1+R)./2.*Sxx;
+            obj.Sxxm = (1+R)./2.*Sxx(:,:,2,:);
             
             % Find the cycle amplitude stress
-            obj.Sxxa = (1-R)./2.*Sxx;
+            obj.Sxxa = (1-R)./2.*Sxx(:,:,2,:);
             
             % Set output
             obj.Sxx = Sxx;

@@ -273,7 +273,7 @@ handles.PlotMinort  = plot(xAB(1,:), Minor(end, :, 2), 'r');
 handles.PlotMinorl  = plot(xAB(1,:), Minor(end, :, 1), 'b');
 plot([0 xAB(1,end)], [1 1], 'g')
 xlim([0 xAB(1,end)]);
-ylim([0 max(Minor(:))]);
+% ylim([0 max(Minor(:))]);
 handles.PlotDisbondPos2 = plot([b(end) b(end)], ylim, '-mo');
 hold off
 title('Minor index')

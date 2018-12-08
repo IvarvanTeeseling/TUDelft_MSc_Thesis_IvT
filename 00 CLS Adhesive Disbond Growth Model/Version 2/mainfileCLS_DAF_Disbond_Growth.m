@@ -17,7 +17,6 @@ matAlSelect = 1;
 % @matGFSelect
 %   > Input options:
 %       1 = UD glass fiber FM94 S2 prepreg
-%       2 = GF S2 FM94 UD PrePreg
 matGFSelect = 1;
 
 % 3) Adhesive material selection
@@ -46,7 +45,7 @@ layupSelect = 2;
 %       6 = Thesis CLS, I. van Teeseling 19.5kN [N]
 %       7 = Thesis CLS, I. van Teeseling 21kN [N]
 %       8 = Thesis CLS, I. van Teeseling 30kN [N]
-lcSelect = 8;
+lcSelect = 4;
 
 % 6) Support boundary conditions
 % @bcSelect
@@ -61,8 +60,8 @@ bcSelect = 'CC';
 %   > Input options:
 %       1 = An ASTM Round Robin (CLS-A) from Johnson 1986
 %       2 = CLS Production series 2
-%       3 = CLS Production series 3
-clsSelect = 3;
+%       3 = CLS Production series 4
+clsSelect = 2;
 
 % 8) Discretization
 % @mesh.qac
@@ -78,8 +77,8 @@ clsSelect = 3;
 %       'C' = Element central value
 %       'R' = Element right boundary value
 mesh.qac = 500;
-mesh.qcb = 1500;
-mesh.qcrack = 700;
+mesh.qcb = 2000;
+mesh.qcrack = 1999;
 mesh.xpos = 'C';
 
 %% Paramater Initialization - Add Options Here
@@ -87,9 +86,9 @@ mesh.xpos = 'C';
 % 1) Metal ply material
 if matAlSelect == 1
     % Aluminium 2024-T3 rolled
-    alu = Metal('elastic', 72000e6, 72000e6, 27068e6, 0.33, ...
+    alu = Metal('elastic', 72400e6, 72400e6, 27600e6, 0.33, ...
         'sy1', 347e6, 'sy2', 299e6, 'su1', 469e6, ...
-        'su2', 469e6, 'ct1', 2.32e-5, 'ct2', 2.32e-5, ...
+        'su2', 469e6, 'ct1', 22e-6, 'ct2', 22e-6, ...
         'name', 'aluminium 2024-T3 rolled');
 end
 disp('>')
@@ -108,13 +107,13 @@ disp(['> Fiber ply material created: ' gf.name])
 % 3) Adhesive material
 if matAdSelect == 1
     % FM94U adhesive film (without a carrier)
-    adh = Adhesive('elastic', 394e6*(2*(1+0.27)), 394e6*(2*(1+0.27)), ...
-        394e6, 0.33, 5.27e-17, 10^(-17.68379446640316), 3.78, ... 
+    adh = Adhesive('elastic', 823e6*(2*(1+0.27)), 823e6*(2*(1+0.27)), ...
+        823e6, 0.33, 5.27e-17, 10^(-17.68379446640316), 3.78, ... 
         'name', 'FM94U Film Adhesive');
 elseif matAdSelect == 2
-    % FM94U adhesive film (without a carrier)
+    % UD glass fiber FM94 S2 prepreg
     adh = Adhesive('elastic', 48900e6, 5500e6, ...
-        5500e6, 0.33, 1.00521e-12, 5.20667e-15, 3.34, ...
+        5500e6, 0.33, 2.77e-16, 9.21e-20, 4.95, ...
         'name', 'GF S2 FM94 UD PrePreg');
 end
 disp('>')
@@ -156,17 +155,19 @@ if clsSelect == 1
     b0 = 0.0;
 elseif clsSelect == 2
     % CLS Production series 2
-    lac0 = 0.067937+0.1445;
+    lac0 = 0.067937;
     lcb0 = 0.1445;
     d = 0.04366;
-    b0 = 0.0;
+    b0 = 0.03;
 elseif clsSelect == 3
     % CLS Production series 4
-    lac0 = 0.06337+0.144585;
+    lac0 = 0.06337;
     lcb0 = 0.144585;
     d = 0.04355;
-    b0 = 0.0;
+    b0 = 0.03; 
 end
+lac0 = lac0+b0;
+lcb0 = lcb0-b0;
 
 % 5) Fatigue load cycle
 if lcSelect == 1
@@ -208,7 +209,7 @@ adFML = Laminate(materials,  ...
     layup,  ...
     'eMethod', 'membrane', ...
     'sState', 'Plane Stress',  ...
-    'dT', 0);
+    'dT', -100);
 
 % Adherent meshing (xAC, xCB, xAB and xBC)
 adMesh = clsMeshing(lac0,  ...
@@ -216,7 +217,8 @@ adMesh = clsMeshing(lac0,  ...
     [mesh.qac mesh.qcb], ...
     'qcrack', mesh.qcrack,  ...
     'pasval', NaN,  ...
-    'xloc', mesh.xpos);
+    'xloc', mesh.xpos, ...
+    'b0', b0);
 
 % Adherent stiffness
 adStiff = AdherentStiffness(adFML.Ex,  ...
@@ -325,33 +327,38 @@ S_cbb = MetalStressCycle([0 0 ; 4.54e-3 325.98e6 ; 9.87e-3 364.91e6], ...
     'eTypeIn', 'TrueStrain', ...
     'sTypeOut', 'EngStress');
 
-% % Load DAF % SERR Footprint
-% load('SERR_DIFF_Fc130.mat');
-% 
-% serr_diff_Fc130(:,1,:) = (serr_diff_Fc130(:,1,1)-55)/1000;
-% a = serr_diff_Fc130(:,3,1)/100;
-% b = serr_diff_Fc130(:,4,1)/100;
-% serr_diff_Fc130(:,2,:) = b;
-% serr_diff_Fc130(:,3,:) = a;
-% 
-% % Strain Energy Release Rate - DAF effect optionally included
-% serr = SERRCalculator('Fern1und1991', ...
-%     'P', Load.Prunning, ...
-%     'Mk', olEdgeLoads.Mk, ...
-%     'Mk0', olEdgeLoads.Mk0, ...
-%     'EAxxac', adStiff.EAxxac, ...
-%     'EIxxac', adStiff.EIxxac, ...
-%     'xserr', adMesh.xCB(1,1:mesh.qcrack+1)', ...
-%     'DAF', serr_diff_Fc130(:,:,2), ...
-%     'x0daf', 0.005);
+% Load the Clamp SERR Footprint with clamping load Fc = 100 MPa
+load('SERR_Footprint_Fc100.mat');
 
-% Strain Energy Release Rate - DAF effect optionally included
-serr = SERRCalculator('Fern1und1991', ...
-    'P', Load.Prunning, ...
-    'Mk', olEdgeLoads.Mk, ...
-    'Mk0', olEdgeLoads.Mk0, ...
-    'EAxxac', adStiff.EAxxac, ...
-    'EIxxac', adStiff.EIxxac);
+% Change to mm and make the DAF location the 0 point (shift by -55 mm)
+SERR_Footprint_Fc100(:,1,:) = (SERR_Footprint_Fc100(:,1,:)-50)/1000;
+a = SERR_Footprint_Fc100(:,3,:)/100;     % Get GII Footprint
+b = SERR_Footprint_Fc100(:,4,:)/100;     % Get GI Footprint 
+SERR_Footprint_Fc100(:,2,:) = b;         % Set GI first
+SERR_Footprint_Fc100(:,3,:) = a;         % Set GII second
+serr_footprint = SERR_Footprint_Fc100(:,:,2);
+
+daf_on = 1;
+if daf_on == 1
+    % Strain Energy Release Rate - DAF effect (optionally included)
+    serr = SERRCalculator('Fern1und1991', ...
+        'P', Load.Prunning, ...
+        'Mk', olEdgeLoads.Mk, ...
+        'Mk0', olEdgeLoads.Mk0, ...
+        'EAxxac', adStiff.EAxxac, ...
+        'EIxxac', adStiff.EIxxac, ...
+        'xserr', adMesh.xCB(1,1:mesh.qcrack+1)', ...
+        'DAF', serr_footprint, ...
+        'x0daf', 0.045-b0);
+else
+    % Strain Energy Release Rate
+    serr = SERRCalculator('Fern1und1991', ...
+        'P', Load.Prunning, ...
+        'Mk', olEdgeLoads.Mk, ...
+        'Mk0', olEdgeLoads.Mk0, ...
+        'EAxxac', adStiff.EAxxac, ...
+        'EIxxac', adStiff.EIxxac);
+end
 
 % Average disbond growth rate per disbond increment
 [dbdN, dG1eq] = adhesiveDGR(serr.GIdaf, ...
@@ -374,7 +381,7 @@ Smxxab = matrixZipper(S_ac.Sxxm, S_cbt.Sxxm, NaN, 'zip');
 
 %% Plotting
 
-gui = 0;
+gui = 1;
 
 if gui == 1
     % Store in application data to allow acces by the GUI
@@ -400,8 +407,8 @@ if gui == 1
     setappdata(0,'Sa_nom_BL', S_cbb.Sxxa);
     setappdata(0,'Sm_nom_A', S_ac.Sxxm);
     setappdata(0,'Sa_nom_A', S_ac.Sxxa);
-    setappdata(0,'GI', serr.GI);
-    setappdata(0,'GII', serr.GII);
+    setappdata(0,'GI', serr.GIdaf);
+    setappdata(0,'GII', serr.GIIdaf);
     setappdata(0,'dG1_eq', dG1eq);
     setappdata(0,'xAB', adMesh.xAB*1000);
     setappdata(0,'x', adMesh.xBC*1000);

@@ -37,7 +37,7 @@ classdef SERRCalculator
     %   publisher={ASTM International}
     % }
     
-    properties (GetAccess = public, SetAccess = private)
+    properties (GetAccess = public)
         Method      % Calculation method deployed
         GI          % Mode I SERR component excl. DAF effect
         GII         % Mode II SERR component excl. DAF effect

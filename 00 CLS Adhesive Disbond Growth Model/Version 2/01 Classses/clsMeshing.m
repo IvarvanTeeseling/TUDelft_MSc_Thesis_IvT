@@ -12,6 +12,7 @@ classdef clsMeshing
         b           % Disbond incremental length (optional)
         xLoc        % Location for the element x-coordinate (optional)
         pasVal      % Value for passive elements (optional)
+        b0          % Initial disbond length
     end
     
     methods
@@ -45,9 +46,11 @@ classdef clsMeshing
             %       1. qcrack = 0
             %       2. xloc = 'Central'
             %       3. pasval = NaN
+            %       3. b0 = 0
             addOptional(p, 'qcrack', 0, validq);
             addOptional(p, 'xloc', 'Central', validxloc);
             addOptional(p, 'pasval', NaN, validnum);
+            addOptional(p, 'b0', 0, validnum);
             
             % Validate the input arguments
             parse(p, lac0, lcb0, q, varargin{:});
@@ -82,9 +85,10 @@ classdef clsMeshing
             obj.xAB = xab;
             obj.lAC = lAC;
             obj.lCB = lCB;
-            obj.b = b;
+            obj.b = b+p.Results.b0;
             obj.xLoc = p.Results.xloc;
             obj.pasVal = p.Results.pasval;
+            obj.b0 = p.Results.b0;
         end
     end
     
